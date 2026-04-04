@@ -46,24 +46,40 @@ Next.js (App Router) でのパス構成を意識して画面を定義します�
 ## 3. 画面遷移の流れ (フロー図)
 
 ```mermaid
-graph TD
-    A[トップページ /] --> B[ログイン画面 /login]
-    B --> K[利用規約・プライバシー /terms, /privacy]
-    B --> C[マイページ /dashboard]
-    C -->|新規作成（ID発行後）| D[ウィザード1: 写真アップロード /album/id/upload]
-    C -->|編集再開 (モーダル経由等)| F[エディタ画面 /album/id/edit]
-    D -->|次へ進む| E[ウィザード2: 情報入力 /album/id/info]
-    E -->|次へ進む| D2[ウィザード3: デザイン選択 /album/id/design]
-    D2 -->|完了| F
-    F -->|プレビュー確認・仕様変更| F
-    F -->|カートに入れる| H1[注文内容確認・カート画面 /cart]
-    H1 -->|アルバム編集に戻る| F
-    H1 -->|次へ進む・決済へ| I((Stripe Checkout 外部決済画面))
-    I --> J[決済完了画面 /success]
-    J -->|トップへ戻る| C
-    C -.->|ヘッダーから| M[アカウント設定 /account/settings]
-    C -.->|ヘッダーから| N[注文履歴 /account/orders]
-    N -->|請求書を確認する| P((Stripe カスタマーポータル 外部領収書))
-    C -.->|ヘッダーから| O[問い合わせ /contact]
-    C -.->|ログアウト| A
+sequenceDiagram
+    actor User as ユーザー
+    participant LP as トップページ
+    participant Auth as 認証・マイページ
+    participant Wiz as 新規作成ウィザード
+    participant Ed as エディタ画面
+    participant Cart as カート・完了
+    participant Stripe as Stripe (外部)
+
+    User->>LP: サイト訪問
+    User->>Auth: ログイン (Google OAuth等)
+    User->>Auth: 「新しく作る」または「編集再開」
+
+    alt 新規作成の場合
+        Auth->>Wiz: ウィザードへ遷移
+        User->>Wiz: 1. 写真の一括アップロード
+        User->>Wiz: 2. 日付・名前の入力
+        User->>Wiz: 3. デザインテンプレート選択
+        Wiz->>Ed: エディタへ遷移
+    else 編集再開の場合
+        Auth->>Ed: エディタへ直接遷移
+    end
+
+    Note over Ed: 【3ペイン構成】で編集<br>左: 仕様変更 / 中央: プレビュー / 右: 写真
+    User->>Ed: レイアウト調整・写真の配置変更
+
+    User->>Cart: カートに入れる
+    Cart-->>User: 注文内容・金額の最終確認
+    
+    User->>Stripe: 決済・配送先入力へ進む
+    Note over Stripe: 外部チェックアウト画面
+    Stripe-->>Cart: 決済完了 (Webhook)
+    Cart-->>User: 決済完了画面 (Success)
+    
+    %% サブフローの注記
+    Note over Auth: 各種設定・注文履歴・領収書取得は<br>マイページ(ヘッダー)からアクセス可能
 ```
