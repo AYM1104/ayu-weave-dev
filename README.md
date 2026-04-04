@@ -51,3 +51,46 @@
 - アルバムの完成イメージをプレビューで確認できる
 - 注文内容を確定し、Stripe で決済できる
 - 製本依頼に必要なデータを印刷会社へ連携できる
+
+## Tech Stack
+
+| レイヤー | 技術 |
+|----------|------|
+| フロントエンド | Next.js 16.1 (App Router) / React 19 / TypeScript |
+| スタイリング | Tailwind CSS v4 |
+| キャンバス | react-konva (Konva) |
+| 状態管理 | Zustand + Immer |
+| 認証 | Firebase (Google OAuth) |
+| バックエンド | FastAPI (Python 3.13) / Uvicorn |
+| DB / ORM | PostgreSQL / SQLAlchemy (asyncio) / Alembic |
+| ストレージ | Google Cloud Storage |
+| デプロイ | Cloud Run / GitHub Actions |
+| テスト | Vitest / Playwright |
+
+詳細: [docs/specs/tech-stack.md](docs/specs/tech-stack.md)
+
+## リポジトリ構成
+
+```
+weave-dev/
+├── frontend/          ... Next.js Webアプリケーション
+│   └── src/
+│       ├── app/       ... App Router（ルーティング）
+│       ├── features/  ... 機能別モジュール（auth, editor, payment 等）
+│       ├── components/... 共通UIコンポーネント
+│       ├── hooks/     ... 共通カスタムフック
+│       ├── lib/       ... ユーティリティ・API設定
+│       ├── store/     ... 共通の状態管理
+│       └── types/     ... 共通型定義
+├── backend/           ... FastAPI バックエンド
+│   ├── app/
+│   │   ├── core/      ... 設定・DB接続・モデル定義
+│   │   └── features/  ... 機能別モジュール（auth, editor, payment 等）
+│   ├── alembic/       ... DBマイグレーション
+│   └── tests/
+├── infra/             ... インフラ設定（GCP）
+├── docs/              ... 設計書・仕様書
+└── data_model/        ... データモデル設計
+```
+
+詳細: [docs/specs/directory-structure.md](docs/specs/directory-structure.md)
