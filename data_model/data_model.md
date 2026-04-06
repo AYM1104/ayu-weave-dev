@@ -17,7 +17,6 @@
 
 - toC向けの場合は、1 user = 1 tenant
 - 将来toB向けになった際に1 つの tenant に複数人が所属するチーム利用を想定
-- 
 
 | カラム名 | データ型 | 制約 | 意味 | 用途 |
 | --- | --- | --- | --- | --- |
@@ -39,17 +38,6 @@
 
 ## books（編集対象の1冊を表す）
 
-| カラム名 | データ型 | 制約 | 意味 | 用途 |
-| --- | --- | --- | --- | --- |
-| id | UUID | PK, NOT NULL | bookの固有ID | 内部主キー。ほかのテーブルから `book_id` として参照する |
-| tenant_id | UUID | FK, NOT NULL | bookが属するtenantのID | 所属先tenantを表す |
-| owner_user_id | UUID | FK, NOT NULL | bookの主担当ユーザーID | 作成者・主担当者を表す |
-| title | VARCHAR(255) | NOT NULL | フォトブックのタイトル | 一覧表示や管理に使う |
-| total_pages | INTEGER | NOT NULL | 総ページ数 | レイアウトや印刷仕様の基礎情報に使う |
-| status | VARCHAR(50) | NOT NULL | bookの状態 | 編集中・完成・注文済みなどの管理に使う |
-| created_at | TIMESTAMP WITH TIME ZONE | NOT NULL | book作成日時 | 作成時刻を記録する |
-| updated_at | TIMESTAMP WITH TIME ZONE | NOT NULL | book更新日時 | bookの更新時刻管理に使う |
-
 | **カラム名** | **データ型** | **意味** | **用途** |
 | --- | --- | --- | --- |
 | id | UUID | フォトブック固有のID | 本の主キー |
@@ -61,9 +49,25 @@
 | created_at | TIMESTAMP WITH TIME ZONE | 作成日時 | 本が作られた日時 |
 | updated_at | TIMESTAMP WITH TIME ZONE | 更新日時 | 本レコードの最終更新日時 |
 
+### BookStatus 定義
+
+| ステータス | 意味 | MVPでの扱い |
+| --- | --- | --- |
+| `draft` | 編集中 | MVPで実際に使用する初期ステータス |
+| `rendering` | PDF / 入稿データ生成中 | Phase 2-2 以降で使用 |
+| `rendered` | PDF / 入稿データ生成完了 | Phase 2-2 以降で使用 |
+| `archived` | 保管済み・編集対象外 | Phase 2-2 以降で使用 |
+
+### MVP 運用ルール
+
+- `books` は編集対象そのものを表す。決済や配送の進行は `orders` で管理し、`books.status` には持ち込まない。
+- `total_pages` は一覧や注文確認で使う要約値とし、ページ構成の正本は `book_drafts.state_json` に置く。
+- MVP では `total_pages` を album 更新 API で直接変更しない。draft 保存成功時に `state_json` の内容から `books.total_pages` を同期する。
+
 ## book_drafts（現在編集中の最新状態を保存する）
 
 - 履歴保存には使わない。常に「今の状態」1件だけを持つ
+- MVP ではページ構成の正本。保存成功時に `books.total_pages` を同一 transaction で同期する
 
 | **カラム名** | **データ型** | **意味** | **用途** |
 | --- | --- | --- | --- |
@@ -80,6 +84,7 @@
 
 - 編集のタイミングで自動保存
 - 10個前まで戻れる
+- restore は current draft を置き換えるだけで、新しい revision は作らない
 
 | **カラム名** | **データ型** | **意味** | **用途** |
 | --- | --- | --- | --- |
@@ -87,18 +92,33 @@
 | book_id | UUID | どの本の履歴か | books に紐づく |
 | tenant_id | UUID | どの tenant の履歴か | 所属と権限確認に使う |
 | revision_no | INTEGER | 履歴番号 | 本の中で何番目の revision かを表す |
-| source | ENUM(RevisionSource) | どう作られた revision か | autosave, manual, render などの由来を区別する |
+| source | ENUM(RevisionSource) | どう作られた revision か | autosave, manual, checkout, render などの由来を区別する |
 | state_json | JSONB | 保存時点の編集内容 | 後から復元したり render の元にしたりする |
 | schema_version | INTEGER | state_json の構造バージョン | 古い revision の互換性維持に使う |
 | created_by_user_id | UUID 
 nullable | revision を作った user | 誰が保存や操作をしたかの記録 |
 | created_at | TIMESTAMP WITH TIME ZONE | revision 作成日時 | 履歴時系列の管理 |
 
+### RevisionSource 定義
+
+| source | 意味 | MVPでの扱い |
+| --- | --- | --- |
+| `autosave` | 自動保存で作られた revision | 実装時に必要なら使用 |
+| `manual` | ユーザー明示操作で作った revision | `POST /albums/{album_id}/revisions` で使用 |
+| `checkout` | 注文固定用に作った revision | `POST /checkout-sessions` で使用 |
+| `render` | render 用に確定した revision | Phase 2-2 以降で使用 |
+
+> restore は source を持たない。MVP では restore 時に新しい revision を追加しないため。
+
 ## media_assets（アップロード済み写真のメタデータを管理する）
+
+- MVP では media は album 専属とし、1 media を複数 album で共有しない
+- API パス `/albums/{album_id}/media` と整合させるため、`book_id` を必須で持つ
 
 | **カラム名** | **データ型** | **意味** | **用途** |
 | --- | --- | --- | --- |
 | id | UUID | 画像アセット固有のID | 画像メタデータの主キー |
+| book_id | UUID | どの album の画像か | albums API のスコープと一致させる。MVPでは 1 media = 1 album |
 | tenant_id | UUID | どの tenant の画像か | 作業領域との紐付け |
 | uploaded_by_user_id | UUID 
 nullable | 画像をアップロードした user | 誰が追加したかの記録 |
@@ -149,6 +169,7 @@ nullable | 実行終了日時 | 完了・失敗時刻の記録 |
 
 - コンテンツのスナップショットは別テーブル（`book_revisions`）に委ねる。
 - 配送先情報は自社 DB に保存しない（個人情報取り扱い方針参照）。発注時に Stripe API から都度取得する。
+- `orders` は注文・決済の進行管理だけを持つ。編集状態は `books` / `book_drafts` で管理する。
 
 ### OrderStatus 定義
 
@@ -189,12 +210,13 @@ draft → pending_payment → paid
 | render_job_id | UUID nullable | 入稿用 PDF のジョブ | 注文確定後に生成した印刷用 PDF への参照 |
 | created_by_user_id | UUID nullable | 注文したユーザー | 誰が注文を作成したかの記録 |
 | status | ENUM(OrderStatus) | 注文の現在ステータス | 上記 OrderStatus 定義を参照 |
-| amount_jpy | INTEGER nullable | 注文金額（税込日本円） | Stripe と突合するための金額記録。**料金体系未確定のため Phase 1 では NULL 許容・設定ロジックなし。Phase 2 で実装** |
+| amount_jpy | INTEGER nullable | 注文金額（税込日本円） | Stripe と突合するための金額記録。**料金体系未確定のため Phase 1 では NULL 許容・設定ロジックなし。Phase 2-1 で実装** |
 | currency | VARCHAR(3) | 通貨コード | 'JPY' 固定（将来の多通貨対応に備える） |
+| checkout_idempotency_key | VARCHAR(255) UNIQUE NOT NULL | Checkout 作成要求の冪等キー | `POST /checkout-sessions` の `Idempotency-Key` を保存し、同一操作の再送で order / revision / Stripe Session の重複作成を防ぐ |
 | client_reference_id | VARCHAR(255) UNIQUE NOT NULL | weave 側で発行する注文 UUID | Stripe Checkout Session 作成時に `client_reference_id` として渡す。Webhook イベントで注文を特定するために使う |
-| stripe_checkout_session_id | VARCHAR(255) UNIQUE nullable | Stripe Checkout Session ID | 返金・Customer Portal 等の Stripe API 操作に必要。Checkout 完了 Webhook で保存 |
+| stripe_checkout_session_id | VARCHAR(255) UNIQUE nullable | Stripe Checkout Session ID | 返金・Customer Portal 等の Stripe API 操作に必要。Checkout Session 作成時に保存し、Webhook でも突合に使う |
 | stripe_payment_intent_id | VARCHAR(255) nullable | Stripe Payment Intent ID | 返金処理等で必要になる Stripe 側の決済識別子 |
-| vender_order_id | VARCHAR(255) nullable | 印刷ベンダー側の注文 ID | 印刷ベンダーへ発注後に受け取る識別子 |
+| vendor_order_id | VARCHAR(255) nullable | 印刷ベンダー側の注文 ID | 印刷ベンダーへ発注後に受け取る識別子 |
 | tracking_number | VARCHAR(255) nullable | 配送追跡番号 | 印刷ベンダーから返される追跡番号 |
 | created_at | TIMESTAMP WITH TIME ZONE | 作成日時 | 注文が作られた日時 |
 | updated_at | TIMESTAMP WITH TIME ZONE | 更新日時 | 注文レコードの最終更新日時 |
@@ -208,6 +230,10 @@ draft → pending_payment → paid
 > | Webhook での参照 | ✅ すべての checkout イベントに含まれる | ✅ session.id として含まれる |
 > | 返金・Portal 操作 | ❌ 使えない | ✅ Session ID として必要 |
 > | 用途 | Webhook → 注文の特定 | Stripe API 操作（返金等） |
+
+> **`checkout_idempotency_key` の役割**
+>
+> `checkout_idempotency_key` は「同じ checkout 開始操作の再送かどうか」を判定するためのキーです。`client_reference_id` は order 自体を識別する ID であり、用途が異なります。
 
 <aside>
 📌
@@ -300,7 +326,7 @@ weave における個人情報の取り扱い方針を定義する。「**個人
 | データ種別 | 保存場所 | 方針 |
 | --- | --- | --- |
 | **写真（media_assets / GCS）** | GCS（一時的） | サービス提供のために一時的に預かる。保持期限は別途決定（TODO） |
-| **配送先住所** | 自社 DB に**保存しない** | Stripe API から都度取得する。Phase 2 のベンダー発注時に Stripe API を呼び出す |
+| **配送先住所** | 自社 DB に**保存しない** | Stripe API から都度取得する。Phase 2-2 のベンダー発注時に Stripe API を呼び出す |
 | **ユーザー認証情報（名前・メール等）** | Firebase Authentication | Firebase Auth に委任。自社 DB には `firebase_uid` のみ保持 |
 | **カード情報** | 自社では**一切保持しない** | Stripe Checkout により処理。PCI DSS 対応済み（SAQ A スコープ） |
 
@@ -308,4 +334,4 @@ weave における個人情報の取り扱い方針を定義する。「**個人
 
 - Stripe Checkout Session のデータは **Stripe 側に無期限で保存され、API から取得可能**。
 - 自社 DB に住所を保存すると削除タイミングが曖昧になるため、保存しない。
-- ベンダー（Fujiplus 等）への発注時は、`orders.stripe_checkout_session_id` を使って Stripe API から住所を取得して発注する（Phase 2 実装）。
+- ベンダー（Fujiplus 等）への発注時は、`orders.stripe_checkout_session_id` を使って Stripe API から住所を取得して発注する（Phase 2-2 実装）。
