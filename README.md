@@ -94,3 +94,11 @@ weave-dev/
 ```
 
 詳細: [docs/specs/directory-structure.md](docs/specs/directory-structure.md)
+
+## 主要ドキュメント
+
+- [MVP API 設計](docs/specs/mvp-api.md)
+- [ユーザーフロー](docs/specs/user-flow.md)
+- [データモデル](data_model/data_model.md)
+
+backend 実装に着手する際は、`docs/specs/mvp-api.md` と `data_model/data_model.md` を優先して参照してください。
