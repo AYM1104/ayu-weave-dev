@@ -1,1 +1,59 @@
+# =========================
+# Next.js / Frontend
+# =========================
+
+# macOS
 .DS_Store
+
+# dependencies
+node_modules/
+
+# Next.js
+.next/
+out/
+build/
+
+# debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# env
+.env
+.env*.local
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts
+
+# Vercel
+.vercel/
+
+# =========================
+# Python / Backend
+# =========================
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# testing
+.pytest_cache/
+coverage/
+.coverage
+htmlcov/
+.tox/
+
+# distribution / packaging
+dist/
+*.egg-info/
+.eggs/
+*.egg
+
