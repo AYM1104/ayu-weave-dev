@@ -53,6 +53,8 @@ MVP backend 実装に先立ち、公開 API の責務・I/O・重要ルールを
 
 ### レスポンスの基本形
 
+単一 resource:
+
 ```json
 {
   "data": {
@@ -64,8 +66,30 @@ MVP backend 実装に先立ち、公開 API の責務・I/O・重要ルールを
 }
 ```
 
-- `data` は常にオブジェクトで返す。
-- 一覧 API は `meta.next_cursor` を返せる形にする。
+一覧 resource:
+
+```json
+{
+  "data": {
+    "items": [
+      {
+        "id": "uuid_1"
+      },
+      {
+        "id": "uuid_2"
+      }
+    ]
+  },
+  "meta": {
+    "request_id": "req_123",
+    "next_cursor": null
+  }
+}
+```
+
+- 単一取得・作成・更新 API は `data` をオブジェクトで返す。
+- 一覧 API (`GET /albums`, `GET /albums/{album_id}/media`, `GET /albums/{album_id}/revisions`) は `data.items` 形式で統一する。
+- `meta.next_cursor` は次ページがない場合 `null` または省略とする。
 - 204 を返す API では body を返さない。
 
 ### エラーの基本形
@@ -92,6 +116,10 @@ MVP backend 実装に先立ち、公開 API の責務・I/O・重要ルールを
 | 404 | `NOT_FOUND` | album / revision / media / order が存在しない |
 | 409 | `DRAFT_VERSION_CONFLICT` | `lock_version` の競合 |
 | 409 | `ALBUM_NOT_READY_FOR_CHECKOUT` | 必須入力不足や利用可能 media 不足 |
+| 409 | `MEDIA_IN_USE` | 削除対象 media が current draft または revision から参照されている |
+| 409 | `MEDIA_STATUS_INVALID` | 現在の media.status では complete を受け付けない |
+| 422 | `SCHEMA_VERSION_UNSUPPORTED` | MVP で未対応の `schema_version` を受け取った |
+| 422 | `INVALID_PAGE_COUNT` | `state_json.pages.length` が `30 / 50 / 70` 以外 |
 | 422 | `VALIDATION_ERROR` | 型・値のバリデーションエラー |
 | 400 | `STRIPE_SIGNATURE_INVALID` | webhook 署名検証失敗 |
 | 500 | `INTERNAL_ERROR` | 想定外エラー |
@@ -145,7 +173,7 @@ MVP backend 実装に先立ち、公開 API の責務・I/O・重要ルールを
 
 | リソース | Method | Path | 責務 |
 | --- | --- | --- | --- |
-| albums | `POST` | `/albums` | 新規 album と空 draft を作る |
+| albums | `POST` | `/albums` | 新規 album と初期 draft を作る |
 | albums | `GET` | `/albums` | 自分の album 一覧を返す |
 | albums | `GET` | `/albums/{album_id}` | album メタ情報を返す |
 | albums | `PATCH` | `/albums/{album_id}` | title など album メタ情報を更新する |
@@ -171,23 +199,210 @@ MVP backend 実装に先立ち、公開 API の責務・I/O・重要ルールを
 
 - album 一覧やダッシュボードで必要なメタ情報を持つ
 - `book_drafts.state_json` の中身は持たない
-- 新規作成時に空の draft を 1 件同時に作る
+- 新規作成時に初期 draft を 1 件同時に作る
 - `books.total_pages` は一覧・注文確認のための要約値として持ち、ページ構成の正本は持たない
 
-主な request / response:
+album summary の返却フィールド:
 
-| API | request | response |
+| field | type | 説明 |
 | --- | --- | --- |
-| `POST /albums` | `title`, `total_pages` | `album.id`, `title`, `total_pages`, `status`, `draft.lock_version=0` |
-| `GET /albums` | `cursor?`, `limit?` | album summary の配列 |
-| `GET /albums/{album_id}` | なし | 1件の album summary |
-| `PATCH /albums/{album_id}` | `title?` | 更新後 album summary |
+| `id` | UUID | album ID |
+| `title` | string | album 表示名 |
+| `total_pages` | integer | 常に `book_drafts.state_json.pages.length` と同じ |
+| `status` | string | MVP では `draft` 固定 |
+| `created_at` | datetime | album 作成日時 |
+| `updated_at` | datetime | album 最終更新日時 |
 
-補足:
+#### `POST /albums`
 
-- wedding 日付、名前、テンプレート選択は `PATCH /albums/{album_id}` では更新しない。`draft.state_json` で扱う。
-- `total_pages` は album 作成時に初期 draft を作るためだけに受け取り、以後は `PUT /albums/{album_id}/draft` で更新する。
-- 採用理由: ページ構成の正本を draft に寄せ、`PATCH /albums` と二重管理しないため。
+request:
+
+- request body 省略または `{}` を許可する。
+- `title` は省略可。省略時 default は `新しいアルバム`。
+- `total_pages` は省略可。省略時 default は `30`。
+- `total_pages` を明示する場合の許容値は `30 / 50 / 70`。
+
+validation:
+
+- `title` を送る場合は trim 後 1 文字以上 255 文字以下。
+- `total_pages` を送る場合は integer かつ `30 / 50 / 70` のいずれか。
+
+DB side effects:
+
+1. `books` に 1 件 insert する。
+   - `title = COALESCE(request.title, '新しいアルバム')`
+   - `total_pages = COALESCE(request.total_pages, 30)`
+   - `status = 'draft'`
+2. 同一 transaction で `book_drafts` に 1 件 insert する。
+   - `schema_version = 1`
+   - `lock_version = 0`
+   - `state_json.wizard = { couple_name: null, event_date: null, design_theme: null }`
+   - `state_json.pages` は `1..total_pages` を page_number に持つ空 page 配列を生成する
+3. `books.total_pages` は生成した `state_json.pages.length` を正として保存する。
+
+request 例:
+
+```json
+{}
+```
+
+response 例:
+
+```json
+{
+  "data": {
+    "album": {
+      "id": "d5a7a8d9-2c8a-4f97-a70c-9d4bf3d97731",
+      "title": "新しいアルバム",
+      "total_pages": 30,
+      "status": "draft",
+      "created_at": "2026-04-11T01:23:45Z",
+      "updated_at": "2026-04-11T01:23:45Z"
+    },
+    "draft": {
+      "schema_version": 1,
+      "lock_version": 0,
+      "updated_at": "2026-04-11T01:23:45Z"
+    }
+  },
+  "meta": {
+    "request_id": "req_123"
+  }
+}
+```
+
+> 上記 `pages` は抜粋。実レスポンスでは保存済みの full state_json を返す。
+
+error codes:
+
+| 条件 | HTTP | code |
+| --- | --- | --- |
+| `title` が空文字または長すぎる | 422 | `VALIDATION_ERROR` |
+| `total_pages` が `30 / 50 / 70` 以外 | 422 | `INVALID_PAGE_COUNT` |
+
+#### `GET /albums`
+
+request:
+
+- query string は `cursor?`, `limit?` を受ける。
+- `limit` の default は `20`、max は `100` とする。
+- sort order は `updated_at DESC, id DESC`。
+
+DB side effects:
+
+- なし。read-only。
+
+response 例:
+
+```json
+{
+  "data": {
+    "items": [
+      {
+        "id": "d5a7a8d9-2c8a-4f97-a70c-9d4bf3d97731",
+        "title": "新しいアルバム",
+        "total_pages": 30,
+        "status": "draft",
+        "created_at": "2026-04-11T01:23:45Z",
+        "updated_at": "2026-04-11T01:23:45Z"
+      }
+    ]
+  },
+  "meta": {
+    "request_id": "req_123",
+    "next_cursor": null
+  }
+}
+```
+
+error codes:
+
+| 条件 | HTTP | code |
+| --- | --- | --- |
+| `limit` / `cursor` が不正 | 422 | `VALIDATION_ERROR` |
+
+#### `GET /albums/{album_id}`
+
+DB side effects:
+
+- なし。read-only。
+
+response 例:
+
+```json
+{
+  "data": {
+    "id": "d5a7a8d9-2c8a-4f97-a70c-9d4bf3d97731",
+    "title": "新しいアルバム",
+    "total_pages": 30,
+    "status": "draft",
+    "created_at": "2026-04-11T01:23:45Z",
+    "updated_at": "2026-04-11T01:23:45Z"
+  },
+  "meta": {
+    "request_id": "req_123"
+  }
+}
+```
+
+error codes:
+
+| 条件 | HTTP | code |
+| --- | --- | --- |
+| album が存在しない | 404 | `NOT_FOUND` |
+
+#### `PATCH /albums/{album_id}`
+
+request:
+
+- MVP で更新可能なのは `title` のみ。
+- `total_pages` は受け付けない。ページ数変更は `PUT /albums/{album_id}/draft` で `state_json` 全体を保存した結果としてのみ反映する。
+
+validation:
+
+- request body は `title` を必須にする。
+- `title` は trim 後 1 文字以上 255 文字以下。
+- `title` 以外の field を送った場合は 422 とする。
+
+DB side effects:
+
+1. `books.title` を更新する。
+2. `books.updated_at` を更新する。
+3. `book_drafts.state_json` や `books.total_pages` は変更しない。
+
+request 例:
+
+```json
+{
+  "title": "結婚式アルバム"
+}
+```
+
+response 例:
+
+```json
+{
+  "data": {
+    "id": "d5a7a8d9-2c8a-4f97-a70c-9d4bf3d97731",
+    "title": "結婚式アルバム",
+    "total_pages": 30,
+    "status": "draft",
+    "created_at": "2026-04-11T01:23:45Z",
+    "updated_at": "2026-04-11T01:30:12Z"
+  },
+  "meta": {
+    "request_id": "req_123"
+  }
+}
+```
+
+error codes:
+
+| 条件 | HTTP | code |
+| --- | --- | --- |
+| `title` がない、空文字、長すぎる | 422 | `VALIDATION_ERROR` |
+| `title` 以外の field を含む | 422 | `VALIDATION_ERROR` |
+| album が存在しない | 404 | `NOT_FOUND` |
 
 ### 6.2 draft
 
@@ -197,21 +412,202 @@ MVP backend 実装に先立ち、公開 API の責務・I/O・重要ルールを
 - `lock_version` を使って楽観ロックを行う
 - 不変履歴は持たず、履歴は `revisions` に任せる
 
-主な request / response:
+MVP で受理する `draft.state_json` の最小 schema:
 
-| API | request | response |
+```json
+{
+  "wizard": {
+    "couple_name": null,
+    "event_date": null,
+    "design_theme": null
+  },
+  "pages": [
+    {
+      "page_number": 1,
+      "slots": []
+    }
+  ]
+}
+```
+
+- 上記は shape の最小例であり、実際に保存される `pages.length` は MVP では必ず `30 / 50 / 70` のいずれか。
+- `POST /albums` 時の初期 draft はこの shape を `1..total_pages` まで展開して作る。
+- `books.total_pages` は常に `state_json.pages.length` を正として同期する。
+
+#### `GET /albums/{album_id}/draft`
+
+DB side effects:
+
+- なし。read-only。
+
+response 例:
+
+```json
+{
+  "data": {
+    "album_id": "d5a7a8d9-2c8a-4f97-a70c-9d4bf3d97731",
+    "schema_version": 1,
+    "lock_version": 0,
+    "total_pages": 30,
+    "state_json": {
+      "wizard": {
+        "couple_name": null,
+        "event_date": null,
+        "design_theme": null
+      },
+      "pages": [
+        {
+          "page_number": 1,
+          "slots": []
+        },
+        {
+          "page_number": 2,
+          "slots": []
+        }
+      ]
+    },
+    "updated_at": "2026-04-11T01:23:45Z"
+  },
+  "meta": {
+    "request_id": "req_123"
+  }
+}
+```
+
+> 上記 `pages` は抜粋。実レコードでは `page_number=1..30` の 30 件を返す。
+
+error codes:
+
+| 条件 | HTTP | code |
 | --- | --- | --- |
-| `GET /albums/{album_id}/draft` | なし | `state_json`, `schema_version`, `lock_version`, `updated_at` |
-| `PUT /albums/{album_id}/draft` | `state_json`, `schema_version`, `lock_version` | 更新後 `state_json`, 新しい `lock_version`, `updated_at` |
+| album または draft が存在しない | 404 | `NOT_FOUND` |
 
-`PUT /albums/{album_id}/draft` の保存ルール:
+#### `PUT /albums/{album_id}/draft`
 
-- クライアントは直前に取得した `lock_version` を必ず送る。
-- サーバーは `WHERE book_id = :id AND lock_version = :lock_version` で更新する。
-- 更新成功時は `lock_version = lock_version + 1` とする。
-- 更新成功時は `state_json` のページ構成から `books.total_pages` を同一 transaction で更新する。
-- 更新件数 0 件なら 409 `DRAFT_VERSION_CONFLICT` を返す。
-- 409 の `details` には `current_lock_version` と `draft.updated_at` を含め、クライアントが再読み込み判断できる形にする。
+request:
+
+- `state_json` は部分更新ではなく丸ごと受ける。
+- `schema_version` は必須で、MVP では `1` のみ受理する。
+- `lock_version` は必須で、直前に取得した値をそのまま送る。
+
+request 例:
+
+```json
+{
+  "schema_version": 1,
+  "lock_version": 0,
+  "state_json": {
+    "wizard": {
+      "couple_name": "Taro & Hanako",
+      "event_date": "2026-03-21",
+      "design_theme": "natural"
+    },
+    "pages": [
+      {
+        "page_number": 1,
+        "slots": []
+      },
+      {
+        "page_number": 2,
+        "slots": [
+          {
+            "slot_id": "cover-main",
+            "media_id": "2a24a7ea-ff27-4b07-8c56-9627114c5261"
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+> 上記 `pages` は抜粋。保存時は `pages.length` が `30 / 50 / 70` のいずれかになる完全な state_json を送る。
+
+validation:
+
+- `schema_version != 1` は 422 `SCHEMA_VERSION_UNSUPPORTED`。
+- `lock_version` が integer でない、または欠落している場合は 422 `VALIDATION_ERROR`。
+- `state_json` が object でない、`wizard` または `pages` が欠落している場合は 422 `VALIDATION_ERROR`。
+- `pages.length` は `30 / 50 / 70` のいずれかのみ許容し、それ以外は 422 `INVALID_PAGE_COUNT`。
+- 各 page は `page_number`, `slots` を持つ。
+- `page_number` は `1..pages.length` の連番で重複不可。
+
+DB side effects:
+
+1. current draft を取得し、`WHERE book_id = :album_id AND lock_version = :lock_version` で楽観ロック更新する。
+2. 更新成功時は `book_drafts.state_json` を request の全文で置き換える。
+3. `book_drafts.schema_version = 1` を保存する。
+4. `book_drafts.lock_version = lock_version + 1` に更新する。
+5. `book_drafts.updated_by_user_id`, `book_drafts.updated_at` を更新する。
+6. 同一 transaction で `books.total_pages = state_json.pages.length` に更新する。
+7. 同一 transaction で `books.updated_at` も更新する。
+
+response 例:
+
+```json
+{
+  "data": {
+    "album_id": "d5a7a8d9-2c8a-4f97-a70c-9d4bf3d97731",
+    "schema_version": 1,
+    "lock_version": 1,
+    "total_pages": 30,
+    "state_json": {
+      "wizard": {
+        "couple_name": "Taro & Hanako",
+        "event_date": "2026-03-21",
+        "design_theme": "natural"
+      },
+      "pages": [
+        {
+          "page_number": 1,
+          "slots": []
+        },
+        {
+          "page_number": 2,
+          "slots": [
+            {
+              "slot_id": "cover-main",
+              "media_id": "2a24a7ea-ff27-4b07-8c56-9627114c5261"
+            }
+          ]
+        }
+      ]
+    },
+    "updated_at": "2026-04-11T01:40:00Z"
+  },
+  "meta": {
+    "request_id": "req_123"
+  }
+}
+```
+
+> 上記 `pages` は抜粋。実レスポンスでは保存済みの full state_json を返す。
+
+error codes:
+
+| 条件 | HTTP | code |
+| --- | --- | --- |
+| `schema_version != 1` | 422 | `SCHEMA_VERSION_UNSUPPORTED` |
+| `pages.length` が `30 / 50 / 70` 以外 | 422 | `INVALID_PAGE_COUNT` |
+| `state_json` の shape が不正 | 422 | `VALIDATION_ERROR` |
+| `lock_version` 競合 | 409 | `DRAFT_VERSION_CONFLICT` |
+| album または draft が存在しない | 404 | `NOT_FOUND` |
+
+409 response 例:
+
+```json
+{
+  "error": {
+    "code": "DRAFT_VERSION_CONFLICT",
+    "message": "draft was updated by another session",
+    "details": {
+      "current_lock_version": 3,
+      "draft_updated_at": "2026-04-11T01:39:58Z"
+    },
+    "request_id": "req_123"
+  }
+}
+```
 
 ### 6.3 revisions
 
@@ -222,20 +618,90 @@ MVP backend 実装に先立ち、公開 API の責務・I/O・重要ルールを
 - 最大 10 件を復元対象として扱う
 - checkout 用の固定 revision は `source=checkout` で識別する
 
-主な request / response:
+#### `GET /albums/{album_id}/revisions`
 
-| API | request | response |
-| --- | --- | --- |
-| `GET /albums/{album_id}/revisions` | `limit?` | `revision_id`, `revision_no`, `source`, `created_at` の配列 |
-| `POST /albums/{album_id}/revisions` | 任意で `note` | `source=manual` の revision summary |
-| `POST /albums/{album_id}/revisions/{revision_id}/restore` | `lock_version` | 復元後 draft の `state_json`, 新しい `lock_version` |
+response 例:
 
-復元ルール:
+```json
+{
+  "data": {
+    "items": [
+      {
+        "id": "3ef4b7c3-5dc4-4dc5-8d6d-f02fe362f171",
+        "revision_no": 4,
+        "source": "manual",
+        "created_at": "2026-04-11T01:15:00Z"
+      },
+      {
+        "id": "7f3fc801-f4b5-4c2d-9ce0-421d6f639b2c",
+        "revision_no": 3,
+        "source": "manual",
+        "created_at": "2026-04-11T00:58:00Z"
+      }
+    ]
+  },
+  "meta": {
+    "request_id": "req_123",
+    "next_cursor": null
+  }
+}
+```
+
+#### `POST /albums/{album_id}/revisions`
+
+- current draft の `state_json` と `schema_version` をそのまま `book_revisions` に copy する。
+- `source = manual` とする。
+- `books.total_pages` は変更しない。
+
+#### `POST /albums/{album_id}/revisions/{revision_id}/restore`
+
+request:
+
+```json
+{
+  "lock_version": 3
+}
+```
+
+restore ルール:
 
 - restore は current draft の上書きなので、`draft` と同じく `lock_version` 競合チェックを行う。
-- restore 実行時は対象 revision の `state_json` を `book_drafts` にコピーし、`lock_version` をインクリメントする。
-- restore 実行時は `books.total_pages` も復元後 draft に合わせて同一 transaction で更新する。
+- restore 実行時は対象 revision の `state_json` と `schema_version` を `book_drafts` にコピーする。
+- restore 実行時は `book_drafts.lock_version` を `+1` する。
+- restore 実行時は `books.total_pages = restored_state_json.pages.length` を同一 transaction で再計算する。
 - MVP では restore 時に新しい revision を追加しない。現状態を残したい場合は restore 前に `POST /albums/{album_id}/revisions` を明示的に呼ぶ。
+
+response 例:
+
+```json
+{
+  "data": {
+    "album_id": "d5a7a8d9-2c8a-4f97-a70c-9d4bf3d97731",
+    "schema_version": 1,
+    "lock_version": 4,
+    "total_pages": 50,
+    "state_json": {
+      "wizard": {
+        "couple_name": "Taro & Hanako",
+        "event_date": "2026-03-21",
+        "design_theme": "classic"
+      },
+      "pages": [
+        {
+          "page_number": 1,
+          "slots": []
+        }
+      ]
+    },
+    "updated_at": "2026-04-11T02:00:00Z"
+  },
+  "meta": {
+    "request_id": "req_123"
+  }
+}
+```
+
+> 上記 `pages` は抜粋。実際には restore 対象 revision の full state_json を返す。
 
 ### 6.4 media
 
@@ -246,22 +712,203 @@ MVP backend 実装に先立ち、公開 API の責務・I/O・重要ルールを
 - エディタで使える状態 (`ready`) になるまでの処理状態を返す
 - MVP では 1 media = 1 album とし、別 album への付け替えや共有は扱わない
 
-主な request / response:
+media summary の返却フィールド:
 
-| API | request | response |
+| field | type | 説明 |
 | --- | --- | --- |
-| `GET /albums/{album_id}/media` | なし | `media[]` |
-| `POST /albums/{album_id}/media/uploads` | `file_name`, `mime_type`, `byte_size`, `sha256?` | `media_id`, `upload_url`, `upload_headers`, `expires_at` |
-| `POST /albums/{album_id}/media/{media_id}/complete` | `width_px?`, `height_px?`, `captured_at?` | 更新後 media summary |
-| `DELETE /albums/{album_id}/media/{media_id}` | なし | 204 No Content |
+| `id` | UUID | media ID |
+| `file_name` | string | 元ファイル名 |
+| `mime_type` | string | サーバーが確定した MIME type |
+| `byte_size` | integer | サーバーが検査したサイズ |
+| `width_px` | integer or null | サーバーが検査した幅 |
+| `height_px` | integer or null | サーバーが検査した高さ |
+| `captured_at` | datetime or null | EXIF 等から得た撮影日時 |
+| `status` | string | `pending / processing / ready / failed / deleted` |
+| `preview_url` | string or null | response 専用 field。`proxy_gcs_key` から導出した URL |
+| `created_at` | datetime | 作成日時 |
+| `updated_at` | datetime | 更新日時 |
 
-アップロードルール:
+#### `GET /albums/{album_id}/media`
 
-1. `POST /media/uploads` で `media_assets` を `pending` で作成し、signed URL を返す
-2. クライアントが GCS へ直接 PUT/POST する
-3. `POST /media/{media_id}/complete` を呼ぶ
-4. サーバー側検査開始時に `processing`、完了後に `ready`、失敗時に `failed` にする
-5. `media_assets.book_id` は path の `album_id` で固定し、後から別 album に付け替えない
+- `status = deleted` の media は一覧に含めない。
+- `preview_url` は `status = ready` かつ proxy 生成済みの場合のみ non-null とする。
+
+DB side effects:
+
+- なし。read-only。
+
+response 例:
+
+```json
+{
+  "data": {
+    "items": [
+      {
+        "id": "2a24a7ea-ff27-4b07-8c56-9627114c5261",
+        "file_name": "IMG_0012.HEIC",
+        "mime_type": "image/heic",
+        "byte_size": 4231987,
+        "width_px": 3024,
+        "height_px": 4032,
+        "captured_at": "2026-03-21T02:12:00Z",
+        "status": "ready",
+        "preview_url": "https://cdn.example.com/media/2a24a7ea-ff27-4b07-8c56-9627114c5261/preview.jpg",
+        "created_at": "2026-04-11T01:32:00Z",
+        "updated_at": "2026-04-11T01:33:10Z"
+      },
+      {
+        "id": "28e4272d-97d8-4972-8638-48adf8f1f429",
+        "file_name": "IMG_0013.HEIC",
+        "mime_type": "image/heic",
+        "byte_size": 4011201,
+        "width_px": 3024,
+        "height_px": 4032,
+        "captured_at": null,
+        "status": "processing",
+        "preview_url": null,
+        "created_at": "2026-04-11T01:35:00Z",
+        "updated_at": "2026-04-11T01:35:30Z"
+      }
+    ]
+  },
+  "meta": {
+    "request_id": "req_123",
+    "next_cursor": null
+  }
+}
+```
+
+#### `POST /albums/{album_id}/media/uploads`
+
+request:
+
+```json
+{
+  "file_name": "IMG_0012.HEIC",
+  "mime_type": "image/heic",
+  "byte_size": 4231987,
+  "sha256": "4f5f0c5a3d30f8e1a4d798669e8cde4d6df64a72637414e8fdd4fcf6df95a647"
+}
+```
+
+validation:
+
+- `file_name` は必須、trim 後 1 文字以上。
+- `mime_type` は必須。
+- `byte_size` は必須、正の integer。
+- `sha256` を送る場合は 64 文字の lower-case hex。
+
+DB side effects:
+
+1. `media_assets` に 1 件 insert する。
+2. 初期値は `status = pending`。
+3. `book_id = {album_id}` を固定で保存する。
+4. `original_gcs_key` を発番して signed upload URL を返す。
+5. `preview_url` はまだ返さない。
+
+response 例:
+
+```json
+{
+  "data": {
+    "id": "2a24a7ea-ff27-4b07-8c56-9627114c5261",
+    "status": "pending",
+    "upload_url": "https://storage.googleapis.com/example-bucket/signed-url",
+    "upload_headers": {
+      "content-type": "image/heic"
+    },
+    "expires_at": "2026-04-11T01:37:00Z"
+  },
+  "meta": {
+    "request_id": "req_123"
+  }
+}
+```
+
+error codes:
+
+| 条件 | HTTP | code |
+| --- | --- | --- |
+| `file_name` / `mime_type` / `byte_size` が不正 | 422 | `VALIDATION_ERROR` |
+| album が存在しない | 404 | `NOT_FOUND` |
+
+#### `POST /albums/{album_id}/media/{media_id}/complete`
+
+request:
+
+```json
+{}
+```
+
+validation:
+
+- MVP では body 省略または `{}` のみ受け付ける。
+- `pending` の media に対して server 側検査を開始する。
+- `processing` または `ready` の media に対する再送は idempotent に current state を返す。
+- `failed` または `deleted` の media に対する complete は 409 `MEDIA_STATUS_INVALID`。
+
+DB side effects:
+
+1. GCS 上の object 存在確認を行う。
+2. server 側で画像を検査し、`mime_type`, `byte_size`, `width_px`, `height_px`, `captured_at`, `sha256` の canonical 値を確定する。
+3. `media_assets` を `status = processing` に更新する。
+4. 以後の response では client 申告値ではなく server 側検査値を正として返す。
+5. background job を enqueue し、proxy 生成完了後に `status = ready`, `preview_url != null` に進める。失敗時は `status = failed` にする。
+
+response 例:
+
+```json
+{
+  "data": {
+    "id": "2a24a7ea-ff27-4b07-8c56-9627114c5261",
+    "file_name": "IMG_0012.HEIC",
+    "mime_type": "image/heic",
+    "byte_size": 4231987,
+    "width_px": 3024,
+    "height_px": 4032,
+    "captured_at": "2026-03-21T02:12:00Z",
+    "status": "processing",
+    "preview_url": null,
+    "created_at": "2026-04-11T01:32:00Z",
+    "updated_at": "2026-04-11T01:32:20Z"
+  },
+  "meta": {
+    "request_id": "req_123"
+  }
+}
+```
+
+error codes:
+
+| 条件 | HTTP | code |
+| --- | --- | --- |
+| request body が `{}` 以外 | 422 | `VALIDATION_ERROR` |
+| `failed` / `deleted` の media に complete | 409 | `MEDIA_STATUS_INVALID` |
+| media が存在しない | 404 | `NOT_FOUND` |
+
+#### `DELETE /albums/{album_id}/media/{media_id}`
+
+使用中判定:
+
+- `book_drafts.state_json` の slot から `media_id` が参照されている場合は使用中とみなす。
+- 復元対象の `book_revisions.state_json` から `media_id` が参照されている場合も使用中とみなす。
+
+DB side effects:
+
+1. `status = deleted` 以外かつ未使用であれば `media_assets.status = deleted` に更新する。
+2. 論理削除のみ行い、MVP では hard delete しない。
+3. すでに `status = deleted` の場合は no-op で 204 を返す。
+
+response:
+
+- 成功時も既削除時も 204 No Content。
+
+error codes:
+
+| 条件 | HTTP | code |
+| --- | --- | --- |
+| current draft または revision で使用中 | 409 | `MEDIA_IN_USE` |
+| media が存在しない | 404 | `NOT_FOUND` |
 
 ### 6.5 checkout-session
 
@@ -339,14 +986,22 @@ checkout 時の `revision_id` 固定ルール:
 - `updated_at` だけでは競合判定に使わない
 - 競合時はサーバーで強制マージしない。クライアントに再取得を促す
 
-### 7.2 checkout 時に `revision_id` を固定する理由
+### 7.2 `books.total_pages` の同期ルール
+
+- `books.total_pages` の正本は `book_drafts.state_json.pages.length` から導出される値であり、クライアント送信値をそのまま正としない。
+- `POST /albums` では初期 draft 生成時の `pages.length` を `books.total_pages` に保存する。
+- `PUT /albums/{album_id}/draft` 成功時は `state_json.pages.length` で `books.total_pages` を再計算する。
+- `POST /albums/{album_id}/revisions/{revision_id}/restore` 成功時も同じ式で `books.total_pages` を再計算する。
+- MVP で許容するページ数は `30 / 50 / 70` のみ。
+
+### 7.3 checkout 時に `revision_id` を固定する理由
 
 - 注文後にユーザーが編集を続けても、注文内容を後から再現できるようにするため
 - 印刷・返金・問い合わせ対応で「どの状態を買ったか」を説明可能にするため
 - `orders` が `book_drafts` を直接参照すると、最新編集内容に引きずられて事故になるため
 - `source=checkout` を持たせることで、注文固定用の revision を manual / autosave と区別できるため
 
-### 7.3 webhook の冪等性方針
+### 7.4 webhook の冪等性方針
 
 - `stripe_processed_events.stripe_event_id` を主キーにする
 - webhook 受信時は、署名検証後に同一 transaction 内で以下を行う
