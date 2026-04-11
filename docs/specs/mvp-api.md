@@ -271,7 +271,8 @@ response 例:
 }
 ```
 
-> 上記 `pages` は抜粋。実レスポンスでは保存済みの full state_json を返す。
+> `POST /albums` のレスポンスでは full state_json は返さない。
+> 初期 draft の内容が必要な場合は `GET /albums/{album_id}/draft` を呼ぶ。
 
 error codes:
 
@@ -531,6 +532,7 @@ validation:
 - `pages.length` は `30 / 50 / 70` のいずれかのみ許容し、それ以外は 422 `INVALID_PAGE_COUNT`。
 - 各 page は `page_number`, `slots` を持つ。
 - `page_number` は `1..pages.length` の連番で重複不可。
+- `state_json.pages[].slots[].media_id` を含む場合、その media は同一 album に属し、`status = ready` でなければならない。
 
 DB side effects:
 
@@ -590,6 +592,7 @@ error codes:
 | `schema_version != 1` | 422 | `SCHEMA_VERSION_UNSUPPORTED` |
 | `pages.length` が `30 / 50 / 70` 以外 | 422 | `INVALID_PAGE_COUNT` |
 | `state_json` の shape が不正 | 422 | `VALIDATION_ERROR` |
+| `state_json` 内で参照した media が存在しない、別 album に属する、または `ready` でない | 422 | `VALIDATION_ERROR` |
 | `lock_version` 競合 | 409 | `DRAFT_VERSION_CONFLICT` |
 | album または draft が存在しない | 404 | `NOT_FOUND` |
 
@@ -729,6 +732,14 @@ media summary の返却フィールド:
 | `updated_at` | datetime | 更新日時 |
 
 #### `GET /albums/{album_id}/media`
+
+request:
+
+- query string は `cursor?`, `limit?` を受ける。
+- `limit` の default は `50`、max は `100` とする。
+- sort order は `created_at DESC, id DESC`。
+
+返却ルール:
 
 - `status = deleted` の media は一覧に含めない。
 - `preview_url` は `status = ready` かつ proxy 生成済みの場合のみ non-null とする。
