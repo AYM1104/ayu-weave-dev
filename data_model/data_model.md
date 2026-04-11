@@ -40,14 +40,14 @@
 
 | **カラム名** | **データ型** | **意味** | **用途** |
 | --- | --- | --- | --- |
-| id | UUID | フォトブック固有のID | 本の主キー |
+| id | UUID | フォトブック固有のID | フォトブックの主キー |
 | tenant_id | UUID | どの tenant に属する本か | 作業領域との紐付け |
 | owner_user_id | UUID nullable | 主担当ユーザー | 誰が作成・管理している本かを示す補助情報 |
 | title | VARCHAR(255) | 本のタイトル | UI表示や一覧表示に使う |
 | total_pages | INTEGER | 総ページ数 | 30/50/70 ページなどの本仕様を表す |
 | status | ENUM(BookStatus) | 本全体の状態 | draft, rendering, rendered, archived などを管理する |
-| created_at | TIMESTAMP WITH TIME ZONE | 作成日時 | 本が作られた日時 |
-| updated_at | TIMESTAMP WITH TIME ZONE | 更新日時 | 本レコードの最終更新日時 |
+| created_at | TIMESTAMP WITH TIME ZONE | 作成日時 | フォトブックが作られた日時 |
+| updated_at | TIMESTAMP WITH TIME ZONE | 更新日時 | フォトブックの最終更新日時 |
 
 ### BookStatus 定義
 
@@ -95,8 +95,7 @@
 | source | ENUM(RevisionSource) | どう作られた revision か | autosave, manual, checkout, render などの由来を区別する |
 | state_json | JSONB | 保存時点の編集内容 | 後から復元したり render の元にしたりする |
 | schema_version | INTEGER | state_json の構造バージョン | 古い revision の互換性維持に使う |
-| created_by_user_id | UUID 
-nullable | revision を作った user | 誰が保存や操作をしたかの記録 |
+| created_by_user_id | UUID nullable | revision を作った user | 誰が保存や操作をしたかの記録 |
 | created_at | TIMESTAMP WITH TIME ZONE | revision 作成日時 | 履歴時系列の管理 |
 
 ### RevisionSource 定義
@@ -120,22 +119,16 @@ nullable | revision を作った user | 誰が保存や操作をしたかの記�
 | id | UUID | 画像アセット固有のID | 画像メタデータの主キー |
 | book_id | UUID | どの album の画像か | albums API のスコープと一致させる。MVPでは 1 media = 1 album |
 | tenant_id | UUID | どの tenant の画像か | 作業領域との紐付け |
-| uploaded_by_user_id | UUID 
-nullable | 画像をアップロードした user | 誰が追加したかの記録 |
+| uploaded_by_user_id | UUID nullable | 画像をアップロードした user | 誰が追加したかの記録 |
 | original_gcs_key | VARCHAR(512) | オリジナル画像の保存先キー | GCS 上の元ファイルを参照する |
-| proxy_gcs_key | VARCHAR(512) 
-nullable | 軽量版画像の保存先キー | プレビューや配信用の画像を参照する |
+| proxy_gcs_key | VARCHAR(512) nullable | 軽量版画像の保存先キー | プレビューや配信用の画像を参照する |
 | file_name | VARCHAR(255) | 元ファイル名 | 一覧表示やサポート確認に使う |
 | mime_type | VARCHAR(128) | 画像の MIME type | jpeg/png などの形式判定に使う |
 | byte_size | BIGINT | ファイルサイズ | 容量チェックや制限管理に使う |
-| width_px | INTEGER 
-nullable | 画像幅 | 解像度判定に使う |
-| height_px | INTEGER 
-nullable | 画像高さ | 解像度判定に使う |
-| captured_at | TIMESTAMP WITH TIME ZONE 
-nullable | 撮影日時 | 並び替えや整理に使える |
-| sha256 | VARCHAR(64) 
-nullable | ファイルハッシュ | 重複検知や整合性確認に使う |
+| width_px | INTEGER nullable | 画像幅 | 解像度判定に使う |
+| height_px | INTEGER nullable | 画像高さ | 解像度判定に使う |
+| captured_at | TIMESTAMP WITH TIME ZONE nullable | 撮影日時 | 並び替えや整理に使える |
+| sha256 | VARCHAR(64) nullable | ファイルハッシュ | 重複検知や整合性確認に使う |
 | status | ENUM(MediaAssetStatus) | 画像の処理状態 | pending, processing, ready, failed, deleted を表す |
 | created_at | TIMESTAMP WITH TIME ZONE | 作成日時 | 画像レコード作成時刻 |
 | updated_at | TIMESTAMP WITH TIME ZONE | 更新日時 | 処理状態更新などの時刻 |
@@ -149,19 +142,13 @@ nullable | ファイルハッシュ | 重複検知や整合性確認に使う |
 | book_id | UUID | どの本を render したか | books に紐づく |
 | revision_id | UUID nullable | どの revision を元に render したか | 出力対象の固定版を示す |
 | status | ENUM(RenderJobStatus) | render 処理の状態 | queued, processing, completed, failed などを表す |
-| body_pdf_gcs_key | VARCHAR(512) 
-nullable | 本文PDFの保存先キー | 生成済みPDFの参照先 |
-| cover_pdf_gcs_key | VARCHAR(512) 
-nullable | 表紙PDFの保存先キー | 生成済み表紙PDFの参照先 |
-| error_message | TEXT 
-nullable | エラー内容 | 失敗時の調査や表示に使う |
-| created_by_user_id | UUID 
-nullable | render を開始した user | 誰が実行したかの記録 |
+| body_pdf_gcs_key | VARCHAR(512) nullable | 本文PDFの保存先キー | 生成済みPDFの参照先 |
+| cover_pdf_gcs_key | VARCHAR(512) nullable | 表紙PDFの保存先キー | 生成済み表紙PDFの参照先 |
+| error_message | TEXT nullable | エラー内容 | 失敗時の調査や表示に使う |
+| created_by_user_id | UUID nullable | render を開始した user | 誰が実行したかの記録 |
 | created_at | TIMESTAMP WITH TIME ZONE | ジョブ作成日時 | render 開始要求の時刻 |
-| started_at | TIMESTAMP WITH TIME ZONE 
-nullable | 実行開始日時 | キュー待ちと実処理開始を分けるために使う |
-| finished_at | TIMESTAMP WITH TIME ZONE 
-nullable | 実行終了日時 | 完了・失敗時刻の記録 |
+| started_at | TIMESTAMP WITH TIME ZONE nullable | 実行開始日時 | キュー待ちと実処理開始を分けるために使う |
+| finished_at | TIMESTAMP WITH TIME ZONE nullable | 実行終了日時 | 完了・失敗時刻の記録 |
 
 # 注文管理
 
@@ -325,7 +312,7 @@ weave における個人情報の取り扱い方針を定義する。「**個人
 
 | データ種別 | 保存場所 | 方針 |
 | --- | --- | --- |
-| **写真（media_assets / GCS）** | GCS（一時的） | サービス提供のために一時的に預かる。保持期限は別途決定（TODO） |
+| **写真（media_assets / AWS S3）** | AWS S3（一時的） | サービス提供のために一時的に預かる。保持期限は別途決定（TODO） |
 | **配送先住所** | 自社 DB に**保存しない** | Stripe API から都度取得する。Phase 2-2 のベンダー発注時に Stripe API を呼び出す |
 | **ユーザー認証情報（名前・メール等）** | Firebase Authentication | Firebase Auth に委任。自社 DB には `firebase_uid` のみ保持 |
 | **カード情報** | 自社では**一切保持しない** | Stripe Checkout により処理。PCI DSS 対応済み（SAQ A スコープ） |
