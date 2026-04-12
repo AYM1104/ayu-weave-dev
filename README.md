@@ -70,6 +70,8 @@
 
 詳細: [docs/specs/tech-stack.md](docs/specs/tech-stack.md)
 
+> 補足: 一部仕様書に旧前提語（Firebase/GCS）が残る箇所は、移行対象または旧命名として扱い、採用確定を意味しません。
+
 ## クラウド方針
 
 - クラウド基盤は `docs/adr/0001-cloud-platform-aws.md` を正本として **AWS に統一**します。
@@ -106,6 +108,6 @@ weave-dev/
 
 - [MVP API 設計](docs/specs/mvp-api.md)
 - [ユーザーフロー](docs/specs/user-flow.md)
-- [データモデル](data_model/data_model.md)
+- [データモデル](docs/specs/data_model.md)
 
-backend 実装に着手する際は、`docs/specs/mvp-api.md` と `data_model/data_model.md` を優先して参照してください。
+backend 実装に着手する際は、`docs/specs/mvp-api.md` と `docs/specs/data_model.md` を優先して参照してください。

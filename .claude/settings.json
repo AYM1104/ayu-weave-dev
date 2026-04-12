@@ -1,6 +1,7 @@
 {
   "project": "ayu-weave-dev",
   "language": "ja",
+  "file_role": "operational_runtime_config",
   "adr_source_of_truth": "docs/adr/0001-cloud-platform-aws.md",
   "mode": "enforced",
   "guards": {
@@ -13,18 +14,8 @@
     "/sync-specs",
     "/review-staged"
   ],
-  "hooks": {
-    "hard_block_candidates": [
-      "危険なbash操作（rm -rf /, curl|bash, sudo系）",
-      "ADR未承認のGCP/Firebase依存を新規追加"
-    ],
-    "soft_guard_candidates": [
-      "docs/specs 更新時に ADR 整合チェックを促す",
-      "infra変更時に未決定ADRの確認を促す"
-    ]
-  },
   "notes": {
-    "purpose": "このファイルは運用方針メモではなく、Claude 運用設定の最小実働定義。",
+    "purpose": "実働設定。運用方針本文は CLAUDE.md / docs 配下を参照する",
     "non_goals": [
       "AWS個別サービスの確定",
       "未承認ADRの代替"

@@ -6,7 +6,8 @@
 1. 変更ファイル一覧を取得。
 2. `Firebase|firebase|GCP|Cloud Run|GCS|Google Cloud Storage|firebase-admin` を検索。
 3. ヒットを 重大/中/軽微 に分類。
-4. 「今すぐ直す」「後でよい」に分けて出力。
+4. 「今すぐ直す」「後続ADR待ち」に分けて出力。
+5. Cognito / App Runner / ECS / Lambda / RDS / Aurora / Terraform / OpenTofu / CDK を確定事項として書いていないか確認する。
 
 出力テンプレート:
 - 重大: 実装前提を誤誘導する記述
