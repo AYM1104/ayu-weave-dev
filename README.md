@@ -60,14 +60,21 @@
 | スタイリング | Tailwind CSS v4 |
 | キャンバス | react-konva (Konva) |
 | 状態管理 | Zustand + Immer |
-| 認証 | Firebase (Google OAuth) |
+| 認証 | AWS 方針に準拠（方式は未決定: 後続ADRで決定） |
 | バックエンド | FastAPI (Python 3.13) / Uvicorn |
 | DB / ORM | PostgreSQL / SQLAlchemy (asyncio) / Alembic |
-| ストレージ | Google Cloud Storage |
-| デプロイ | Cloud Run / GitHub Actions |
+| ストレージ | AWS 方針に準拠（方式は未決定: 後続ADRで決定） |
+| デプロイ | AWS 方針に準拠（実行基盤は未決定: 後続ADRで決定） / GitHub Actions |
 | テスト | Vitest / Playwright |
 
+
 詳細: [docs/specs/tech-stack.md](docs/specs/tech-stack.md)
+
+## クラウド方針
+
+- クラウド基盤は `docs/adr/0001-cloud-platform-aws.md` を正本として **AWS に統一**します。
+- ただし、認証 / 実行基盤 / DB / IaC などの個別サービス選定は **未決定** で、後続 ADR で確定します。
+- したがって、README 上でも AWS 個別サービスは確定事項として記載しません。
 
 ## リポジトリ構成
 
@@ -88,7 +95,7 @@ weave-dev/
 │   │   └── features/  ... 機能別モジュール（auth, editor, payment 等）
 │   ├── alembic/       ... DBマイグレーション
 │   └── tests/
-├── infra/             ... インフラ設定（GCP）
+├── infra/             ... インフラ設定（AWS方針。個別サービスは未決定）
 ├── docs/              ... 設計書・仕様書
 └── data_model/        ... データモデル設計
 ```

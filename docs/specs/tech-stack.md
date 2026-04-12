@@ -20,7 +20,7 @@ Weave はフォトアルバムエディタのWebアプリケーションです�
 | キャンバス描画 | react-konva (Konva) | 写真配置・編集に必要な高性能 2D キャンバス |
 | 状態管理 | Zustand + Immer | 軽量かつ直感的。Immer で不変性を保ちながらスムーズに状態更新 |
 | API通信 | Axios | インターセプターやエラーハンドリングが充実 |
-| 認証 (クライアント) | Firebase (Google OAuth) | Google 認証を最小コストで実装可能 |
+| 認証 (クライアント) | AWS 方針に準拠（方式未決定） | `docs/adr/0001-cloud-platform-aws.md` に基づき AWS 前提で統一。個別方式は後続 ADR で決定 |
 | ローカルストレージ | idb (IndexedDB) | 画像データのオフラインキャッシュに利用 |
 | ユニットテスト | Vitest + React Testing Library | Vite ベースで高速。React コンポーネントのテストに最適 |
 | E2Eテスト | Playwright | クロスブラウザ対応の信頼性の高い E2E テスト |
@@ -34,8 +34,8 @@ Weave はフォトアルバムエディタのWebアプリケーションです�
 | ORM | SQLAlchemy (asyncio) | Python の標準的な ORM。非同期対応で高パフォーマンス |
 | DB ドライバ | asyncpg | PostgreSQL 向け高速な非同期ドライバ |
 | マイグレーション | Alembic | SQLAlchemy と統合されたDBマイグレーション管理 |
-| 認証 (サーバー) | firebase-admin | Firebase トークンのサーバーサイド検証 |
-| クラウドストレージ | Google Cloud Storage | 画像ファイルのリモート保存 |
+| 認証 (サーバー) | AWS 方針に準拠（方式未決定） | 認証トークン検証方式は未決定。Cognito 採用可否を含め後続 ADR で決定 |
+| クラウドストレージ | AWS 方針に準拠（方式未決定） | オブジェクトストレージ方式は未決定。S3 を含む候補比較は後続 ADR で決定 |
 | 画像処理 | Pillow | 画像のリサイズ・変換処理 |
 | PDF生成 | ReportLab | 印刷用データの書き出し |
 | バリデーション | Pydantic | FastAPI 標準。リクエスト/レスポンスの型安全な検証 |
@@ -44,9 +44,9 @@ Weave はフォトアルバムエディタのWebアプリケーションです�
 
 | カテゴリ | 技術 | 採用理由 |
 |----------|------|----------|
-| デプロイ先 | Cloud Run (asia-northeast1) | コンテナベースでスケーラブル。日本リージョン対応 |
+| デプロイ先 | AWS 方針に準拠（実行基盤未決定） | App Runner / ECS Fargate / Lambda は未決定。後続 ADR で決定 |
 | CI/CD | GitHub Actions | GitHub との統合が容易。PR ベースの自動テスト・デプロイ |
-| DB | PostgreSQL (Cloud SQL 想定) | 信頼性の高いリレーショナルDB |
+| DB | PostgreSQL（マネージド方式は未決定） | RDS / Aurora を含む運用方式は後続 ADR で決定 |
 
 ---
 
@@ -55,7 +55,7 @@ Weave はフォトアルバムエディタのWebアプリケーションです�
 | 候補 | 不採用理由 |
 |------|-----------|
 | Prisma (ORM) | TypeScript 向け。Python バックエンドでは SQLAlchemy が標準的 |
-| Supabase | Firebase で認証・ストレージ要件を満たしており移行コストに見合わない |
+| Supabase | 現時点の MVP 要件と 3人チーム運用では導入優先度が低く、比較検討コストに対して効果が小さい |
 | Redux | エディタアプリの状態管理には Zustand + Immer の方がシンプルで適切 |
 | styled-components | Tailwind CSS の方がチーム間でスタイルの一貫性を保ちやすい |
 | pnpm / yarn | npm で十分。チーム全員が追加ツールなしで即開発可能 |
@@ -109,3 +109,11 @@ Zustand + Immer を採用し、以下のルールで状態を管理する。
 - **まず `useState` で済むかを考える**。グローバルに共有する必要がある場合のみ Zustand ストアを作る
 - Zustand ストアの更新には **Immer を使い、不変性を保ちます**
 - 1つのストアが肥大化しないよう、機能単位でストアを分割する
+
+---
+
+## ADR 0001 との整合ルール
+
+- クラウド基盤は AWS に統一する。
+- ただし AWS の個別サービス名は、後続 ADR 未承認の段階で確定しない。
+- 旧前提（Firebase / GCP / Cloud Run / GCS）が必要な場合は、**歴史的経緯または移行対象であること**を明記する。

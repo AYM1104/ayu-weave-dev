@@ -1,5 +1,12 @@
 # ユーザー管理
 
+> クラウド依存命名に関する注記（AWS 統一 ADR 反映）
+>
+> - 本書には `firebase_uid` や `*_gcs_key` など、旧前提由来の命名が残っています。
+> - これらは **現時点では命名移行方針が未決定** のため、いったん「既存論理名」として保持します。
+> - 実装着手前に「認証ID命名」「オブジェクトキー命名」の後続 ADR を作成し、確定後に一括リネーム可否を判断します。
+> - 本ドキュメント更新時点で、`firebase_*` / `gcs_*` を新規確定事項として追加することは禁止します。
+
 ## users（個人を識別する）
 
 - users は「ログインする人」を表すテーブル。
@@ -8,7 +15,7 @@
 | カラム名 | データ型 | 制約 | 意味 | 用途 |
 | --- | --- | --- | --- | --- |
 | id | UUID | PK, NOT NULL | アプリ内でのユーザー固有ID | 内部主キー。ほかのテーブルから `user_id` として参照する |
-| firebase_uid | VARCHAR(255) | UNIQUE, NOT NULL | Firebase上のユーザーID | Firebase上のユーザーとアプリ内ユーザーを紐づけるために使う |
+| firebase_uid | VARCHAR(255) | UNIQUE, NOT NULL | （旧命名）外部IdP上のユーザーID | 既存論理名。認証方式ADR確定後に `auth_subject` 等へ改名要否を判断 |
 | last_login_at | TIMESTAMP WITH TIME ZONE | NULL | 最後にログインした日時 | アクティブユーザーの把握や運用上の確認に使う |
 | created_at | TIMESTAMP WITH TIME ZONE | NOT NULL | ユーザー作成日時 | いつアカウントが作られたかを記録する |
 | updated_at | TIMESTAMP WITH TIME ZONE | NOT NULL | ユーザー情報の最終更新日時 | レコード更新時刻の管理に使う |
@@ -120,8 +127,8 @@
 | book_id | UUID | どの album の画像か | albums API のスコープと一致させる。MVPでは 1 media = 1 album |
 | tenant_id | UUID | どの tenant の画像か | 作業領域との紐付け |
 | uploaded_by_user_id | UUID nullable | 画像をアップロードした user | 誰が追加したかの記録 |
-| original_gcs_key | VARCHAR(512) | オリジナル画像の保存先キー | GCS 上の元ファイルを参照する |
-| proxy_gcs_key | VARCHAR(512) nullable | 軽量版画像の保存先キー | プレビューや配信用の画像を参照する |
+| original_gcs_key | VARCHAR(512) | （旧命名）オリジナル画像の保存先キー | 既存論理名。オブジェクトストレージ方式 ADR 確定後に改名要否を判断 |
+| proxy_gcs_key | VARCHAR(512) nullable | （旧命名）軽量版画像の保存先キー | 既存論理名。オブジェクトストレージ方式 ADR 確定後に改名要否を判断 |
 | file_name | VARCHAR(255) | 元ファイル名 | 一覧表示やサポート確認に使う |
 | mime_type | VARCHAR(128) | 画像の MIME type | jpeg/png などの形式判定に使う |
 | byte_size | BIGINT | ファイルサイズ | 容量チェックや制限管理に使う |
@@ -142,8 +149,8 @@
 | book_id | UUID | どの本を render したか | books に紐づく |
 | revision_id | UUID nullable | どの revision を元に render したか | 出力対象の固定版を示す |
 | status | ENUM(RenderJobStatus) | render 処理の状態 | queued, processing, completed, failed などを表す |
-| body_pdf_gcs_key | VARCHAR(512) nullable | 本文PDFの保存先キー | 生成済みPDFの参照先 |
-| cover_pdf_gcs_key | VARCHAR(512) nullable | 表紙PDFの保存先キー | 生成済み表紙PDFの参照先 |
+| body_pdf_gcs_key | VARCHAR(512) nullable | （旧命名）本文PDFの保存先キー | 既存論理名。オブジェクトストレージ方式 ADR 確定後に改名要否を判断 |
+| cover_pdf_gcs_key | VARCHAR(512) nullable | （旧命名）表紙PDFの保存先キー | 既存論理名。オブジェクトストレージ方式 ADR 確定後に改名要否を判断 |
 | error_message | TEXT nullable | エラー内容 | 失敗時の調査や表示に使う |
 | created_by_user_id | UUID nullable | render を開始した user | 誰が実行したかの記録 |
 | created_at | TIMESTAMP WITH TIME ZONE | ジョブ作成日時 | render 開始要求の時刻 |
@@ -312,9 +319,9 @@ weave における個人情報の取り扱い方針を定義する。「**個人
 
 | データ種別 | 保存場所 | 方針 |
 | --- | --- | --- |
-| **写真（media_assets / AWS S3）** | AWS S3（一時的） | サービス提供のために一時的に預かる。保持期限は別途決定（TODO） |
+| **写真（media_assets）** | AWS方針準拠のオブジェクトストレージ（方式未決定） | サービス提供のために一時的に預かる。保持期限と保存方式は後続ADRで決定（TODO） |
 | **配送先住所** | 自社 DB に**保存しない** | Stripe API から都度取得する。Phase 2-2 のベンダー発注時に Stripe API を呼び出す |
-| **ユーザー認証情報（名前・メール等）** | Firebase Authentication | Firebase Auth に委任。自社 DB には `firebase_uid` のみ保持 |
+| **ユーザー認証情報（名前・メール等）** | AWS方針準拠の認証基盤（方式未決定） | 認証基盤は後続ADRで決定。自社 DB には外部IDの対応キーのみ保持する想定 |
 | **カード情報** | 自社では**一切保持しない** | Stripe Checkout により処理。PCI DSS 対応済み（SAQ A スコープ） |
 
 ## 配送先住所について
@@ -322,3 +329,14 @@ weave における個人情報の取り扱い方針を定義する。「**個人
 - Stripe Checkout Session のデータは **Stripe 側に無期限で保存され、API から取得可能**。
 - 自社 DB に住所を保存すると削除タイミングが曖昧になるため、保存しない。
 - ベンダー（Fujiplus 等）への発注時は、`orders.stripe_checkout_session_id` を使って Stripe API から住所を取得して発注する（Phase 2-2 実装）。
+
+
+## 命名見直しTODO（最小運用）
+
+### 今すぐ直すべきもの
+- 仕様文中で `Firebase` / `GCS` を「採用確定」の文脈で書かない。
+- 旧命名カラムには「旧命名」「ADR待ち」を明記する。
+
+### 後続ADR待ちで保留するもの
+- 物理カラム名（`firebase_uid`, `*_gcs_key`）の一括リネーム。
+- 外部連携のキー命名規約（`s3_key` など）への変更。
