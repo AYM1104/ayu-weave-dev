@@ -34,8 +34,8 @@ Weave はフォトアルバムエディタのWebアプリケーションです�
 | ORM | SQLAlchemy (asyncio) | Python の標準的な ORM。非同期対応で高パフォーマンス |
 | DB ドライバ | asyncpg | PostgreSQL 向け高速な非同期ドライバ |
 | マイグレーション | Alembic | SQLAlchemy と統合されたDBマイグレーション管理 |
-| 認証 (サーバー) | AWS 方針に準拠（方式未決定） | 認証トークン検証方式は未決定。Cognito 採用可否を含め後続 ADR で決定 |
-| クラウドストレージ | AWS 方針に準拠（方式未決定） | オブジェクトストレージ方式は未決定。S3 を含む候補比較は後続 ADR で決定 |
+| 認証 (サーバー) | firebase-admin | Firebase トークンのサーバーサイド検証 |
+| クラウドストレージ | Amazon S3 | 画像ファイル等のリモート保存 |
 | 画像処理 | Pillow | 画像のリサイズ・変換処理 |
 | PDF生成 | ReportLab | 印刷用データの書き出し |
 | バリデーション | Pydantic | FastAPI 標準。リクエスト/レスポンスの型安全な検証 |
@@ -44,9 +44,23 @@ Weave はフォトアルバムエディタのWebアプリケーションです�
 
 | カテゴリ | 技術 | 採用理由 |
 |----------|------|----------|
-| デプロイ先 | AWS 方針に準拠（実行基盤未決定） | App Runner / ECS Fargate / Lambda は未決定。後続 ADR で決定 |
+| デプロイ先 (Backend) | AWS ECS (Fargate) または App Runner (ap-northeast-1) | コンテナベースでスケーラブルな環境。日本リージョン対応 |
+| デプロイ先 (Frontend) | AWS S3 + CloudFront | Next.jsの静的エクスポート (`output: 'export'`) による低コストかつ高速な配信 |
 | CI/CD | GitHub Actions | GitHub との統合が容易。PR ベースの自動テスト・デプロイ |
-| DB | PostgreSQL（マネージド方式は未決定） | RDS / Aurora を含む運用方式は後続 ADR で決定 |
+| DB | PostgreSQL (Amazon RDS / Aurora 想定) | 信頼性の高いリレーショナルDB |
+
+---
+
+## フロントエンド実装上のアーキテクチャ制約
+
+フロントエンドは静的ホスティング (S3 + CloudFront) に配置されるため、Next.js の **Static Export (`output: 'export'`)** でビルドされます。これにより以下の実装制約があります。
+
+1. **サーバー依存機能の禁止**
+   - `app/api/` (API Routes), Server Actions (`use server`), `cookies()`, `headers()`, Next.jsの `redirect`/`rewrite` は動作しないため使用禁止。
+2. **動的ルーティング (`[id]`) の代用ルール**
+   - データベースのIDなど、ビルド時に値が確定しない動的ルート（例: `app/album/[id]/page.tsx`）はStatic Exportでは使用できません。
+   - 代わりにクエリパラメータを活用したSPA的な実装（例: `/album/upload?id=123`）を行い、クライアント側で `useSearchParams` を用いて取得します。
+   - `useSearchParams` を呼び出すコンポーネントは、ルーティングのビルドエラーを防ぐために必ず `<Suspense>` でラップする必要があります。
 
 ---
 
