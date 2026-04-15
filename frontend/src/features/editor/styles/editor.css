@@ -1,0 +1,760 @@
+/**
+ * エディター用CSS変数
+ *
+ * Figma MakeのデザインからN抽出したウォームブラウンのカラーパレットと、
+ * エディター画面固有のスタイル変数。
+ */
+
+/* ──────── エディター カスタムプロパティ ──────── */
+:root {
+  /* プライマリ（ウォームブラウン） */
+  --editor-primary: #4b4130;
+  --editor-primary-80: rgba(75, 65, 48, 0.8);
+  --editor-primary-50: rgba(75, 65, 48, 0.5);
+  --editor-primary-20: rgba(75, 65, 48, 0.2);
+  --editor-primary-10: rgba(75, 65, 48, 0.1);
+  --editor-primary-08: rgba(75, 65, 48, 0.08);
+
+  /* 背景・サーフェス */
+  --editor-bg: #f5f4f1;
+  --editor-bg-subtle: #f5f1ee;
+  --editor-surface: #ffffff;
+
+  /* テキスト */
+  --editor-text: #12100c;
+  --editor-text-60: rgba(18, 16, 12, 0.6);
+  --editor-text-08: rgba(18, 16, 12, 0.08);
+
+  /* ボーダー */
+  --editor-border: #d9d9d9;
+  --editor-border-light: rgba(18, 16, 12, 0.08);
+
+  /* フォント */
+  --editor-font-body: "Hiragino Kaku Gothic Pro", "Hiragino Sans",
+    "Noto Sans JP", sans-serif;
+  --editor-font-display: "Italiana", serif;
+
+  /* サイドバー幅 */
+  --editor-sidebar-width: 280px;
+
+  /* ヘッダー高さ */
+  --editor-header-height: 40px;
+  --editor-controlbar-height: 56px;
+
+  /* フッター */
+  --editor-footer-height: 140px;
+}
+
+/* ──────── エディター全体のCSSリセット ──────── */
+.editor-root {
+  font-family: var(--editor-font-body);
+  color: var(--editor-text);
+  background-color: var(--editor-bg);
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+/* ──────── ヘッダー (menu) ──────── */
+.editor-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 8px 16px 4px;
+  z-index: 20;
+  flex-shrink: 0;
+  height: var(--editor-header-height);
+}
+
+.editor-header__menu-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: var(--editor-primary-10);
+  backdrop-filter: blur(4px);
+  box-shadow: 0 0 8px rgba(0, 0, 0, 0.07);
+  border: none;
+  cursor: pointer;
+  font-size: 18px;
+  font-weight: 300;
+  color: var(--editor-primary);
+  letter-spacing: 0.36px;
+}
+
+.editor-header__menu-btn:hover {
+  background: var(--editor-primary-20);
+}
+
+/* ──────── コントロールバー ──────── */
+.editor-controlbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 56px;
+  height: var(--editor-controlbar-height);
+  flex-shrink: 0;
+  gap: 8px;
+}
+
+.editor-controlbar__left {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.editor-controlbar__right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* アイコンボタン共通 */
+.editor-icon-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: none;
+  background: transparent;
+  color: var(--editor-primary);
+  cursor: pointer;
+  border-radius: 8px;
+  transition: background 0.15s ease;
+}
+
+.editor-icon-btn:hover {
+  background: var(--editor-primary-10);
+}
+
+.editor-icon-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+/* テキストボタン（プレビュー等） */
+.editor-btn-ghost {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 136px;
+  height: 32px;
+  padding: 7px 12px;
+  border-radius: 100px;
+  border: none;
+  background: var(--editor-primary-20);
+  backdrop-filter: blur(7px);
+  color: var(--editor-primary);
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.editor-btn-ghost:hover {
+  background: var(--editor-primary-50);
+  color: white;
+}
+
+.editor-btn-primary {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 136px;
+  height: 32px;
+  padding: 9px 16px;
+  border-radius: 100px;
+  border: 2px solid var(--editor-border-light);
+  background: var(--editor-primary);
+  color: white;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  transition: opacity 0.15s ease;
+}
+
+.editor-btn-primary:hover {
+  opacity: 0.85;
+}
+
+/* ──────── メインコンテンツ（3ペイン） ──────── */
+.editor-main {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+  min-height: 0;
+}
+
+/* 中央カラム: キャンバス + フッター + コントロールバー（サイドバー間） */
+.editor-center {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow: hidden;
+}
+
+/* ──────── 左サイドバー ──────── */
+.editor-sidebar-left {
+  width: var(--editor-sidebar-width);
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  padding: 12px;
+  overflow-y: auto;
+  position: relative;
+}
+
+/* 下部のフェードグラデーション */
+.editor-sidebar-left::after {
+  content: "";
+  position: sticky;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 32px;
+  background: linear-gradient(to top, var(--editor-bg-subtle), transparent);
+  pointer-events: none;
+  flex-shrink: 0;
+}
+
+/* テンプレート使用ボタン */
+.editor-template-btn {
+  width: 100%;
+  height: 88px;
+  border-radius: 16px;
+  background: var(--editor-primary);
+  color: white;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 12px 16px;
+  border: none;
+  cursor: pointer;
+  overflow: hidden;
+  position: relative;
+  transition: transform 0.2s ease;
+  flex-shrink: 0;
+}
+
+.editor-template-btn:hover {
+  transform: scale(1.02);
+}
+
+.editor-template-btn__title {
+  font-size: 14px;
+  font-weight: 600;
+  text-align: center;
+  width: 126px;
+}
+
+.editor-template-btn__sub {
+  font-size: 12px;
+  font-weight: 300;
+}
+
+/* レイアウト選択 */
+.editor-layout-select {
+  width: 100%;
+  height: 40px;
+  border: 1px solid var(--editor-border);
+  border-radius: 8px;
+  padding: 0 12px 0 16px;
+  font-size: 16px;
+  color: var(--editor-text);
+  background: white;
+  appearance: none;
+  cursor: pointer;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%234B4130' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+}
+
+/* アコーディオン */
+.editor-accordion {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+}
+
+.editor-accordion__trigger {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 4px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  width: 100%;
+  border-radius: 4px;
+}
+
+.editor-accordion__trigger:hover {
+  background: var(--editor-primary-08);
+}
+
+.editor-accordion__chevron {
+  width: 16px;
+  height: 16px;
+  transition: transform 0.2s ease;
+  color: var(--editor-primary);
+}
+
+.editor-accordion__chevron--open {
+  transform: rotate(0deg);
+}
+
+.editor-accordion__chevron--closed {
+  transform: rotate(-90deg);
+}
+
+.editor-accordion__label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--editor-primary-80);
+}
+
+.editor-accordion__count {
+  font-size: 12px;
+  font-weight: 300;
+  color: var(--editor-primary-50);
+}
+
+/* レイアウトサムネイルグリッド */
+.editor-layout-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  width: 100%;
+}
+
+.editor-layout-grid--square {
+  gap: 12px;
+}
+
+.editor-layout-thumb {
+  position: relative;
+  background: white;
+  overflow: hidden;
+  cursor: pointer;
+  border: 2px solid transparent;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.editor-layout-thumb:hover {
+  border-color: var(--editor-primary-50);
+  box-shadow: 0 0 0 1px var(--editor-primary-20);
+}
+
+.editor-layout-thumb--selected {
+  border-color: var(--editor-primary);
+  box-shadow: 0 0 0 2px var(--editor-primary-20);
+}
+
+.editor-layout-thumb--spread {
+  width: 126px;
+  height: 89px;
+}
+
+.editor-layout-thumb--square {
+  width: 77px;
+  height: 109px;
+}
+
+.editor-layout-thumb__slot {
+  position: absolute;
+  background: rgba(0, 0, 0, 0.1);
+}
+
+/* ──────── 中央キャンバス ──────── */
+.editor-canvas-area {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  overflow: hidden;
+  position: relative;
+}
+
+.editor-canvas-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  position: relative;
+  flex: 1;
+  width: 100%;
+  padding: 14px 56px;
+}
+
+/* ページ送りボタン */
+.editor-page-nav {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 12px;
+  border-radius: 28px;
+  border: none;
+  background: var(--editor-primary-10);
+  backdrop-filter: blur(7.5px);
+  box-shadow: 0 0 11px rgba(0, 0, 0, 0.11);
+  cursor: pointer;
+  color: var(--editor-primary);
+  flex-shrink: 0;
+  transition: background 0.15s ease;
+  z-index: 5;
+}
+
+.editor-page-nav:hover {
+  background: var(--editor-primary-20);
+}
+
+.editor-page-nav:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+/* 見開きビュー */
+.editor-spread {
+  display: flex;
+  align-items: center;
+  background: white;
+  box-shadow: 0 0 8px rgba(0, 0, 0, 0.12);
+  flex-shrink: 0;
+  transition: transform 0.15s ease;
+}
+
+.editor-spread__page {
+  position: relative;
+  background: white;
+  overflow: hidden;
+}
+
+/* ページ内の影（内側） */
+.editor-spread__page--left {
+  box-shadow: inset -4px 0 26px rgba(0, 0, 0, 0.05);
+}
+
+.editor-spread__page--right {
+  box-shadow: inset 5px 0 8px rgba(0, 0, 0, 0.05);
+}
+
+/* 綴じ（中央のスパイン） */
+.editor-spread__spine {
+  width: 4px;
+  background: rgba(255, 255, 255, 0.6);
+  box-shadow: 0 0 14px rgba(0, 0, 0, 0.06);
+  align-self: stretch;
+}
+
+/* ページラベル */
+.editor-spread__ratio-label {
+  position: absolute;
+  font-size: 20px;
+  font-weight: 300;
+  color: var(--editor-text-60);
+  text-align: center;
+  pointer-events: none;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+/* スロット（写真配置枠） */
+.editor-slot {
+  position: absolute;
+  background: var(--editor-text-08);
+  transition: box-shadow 0.15s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.editor-slot:hover {
+  box-shadow: 0 0 0 2px var(--editor-primary-50);
+}
+
+.editor-slot__image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* ──────── 右サイドバー ──────── */
+.editor-sidebar-right {
+  width: var(--editor-sidebar-width);
+  flex-shrink: 0;
+  padding: 12px;
+  backdrop-filter: blur(4px);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.editor-upload-area {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  background: var(--editor-primary-08);
+  border: 1px dashed var(--editor-primary-50);
+  position: relative;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.editor-upload-area:hover {
+  background: var(--editor-primary-10);
+}
+
+.editor-upload-area__icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: linear-gradient(to bottom, #f5f4f1, #cbc7c0);
+  border: 1px solid rgba(64, 12, 4, 0.05);
+  box-shadow: 0 0 7px rgba(0, 0, 0, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  color: var(--editor-primary-80);
+}
+
+.editor-upload-area__text {
+  text-align: center;
+  font-size: 14px;
+  color: var(--editor-primary);
+  line-height: 1.6;
+}
+
+.editor-upload-area__text--bold {
+  font-weight: 600;
+}
+
+.editor-upload-area__hint {
+  text-align: center;
+  font-size: 12px;
+  color: var(--editor-primary-50);
+  line-height: 1.5;
+}
+
+/* 写真サムネイルグリッド（アップロード済み写真） */
+.editor-photo-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+  padding: 12px 0;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.editor-photo-thumb {
+  aspect-ratio: 1;
+  border-radius: 4px;
+  overflow: hidden;
+  cursor: grab;
+  position: relative;
+  border: 2px solid transparent;
+  transition: border-color 0.15s ease;
+}
+
+.editor-photo-thumb:hover {
+  border-color: var(--editor-primary-50);
+}
+
+.editor-photo-thumb__img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.editor-photo-thumb__used {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  font-size: 10px;
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: var(--editor-primary);
+  color: white;
+}
+
+/* QRコードエリア */
+.editor-qr-area {
+  background: var(--editor-primary-10);
+  border-radius: 4px;
+  padding: 24px 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  margin-top: auto;
+}
+
+.editor-qr-area__placeholder {
+  width: 88px;
+  height: 88px;
+  border-radius: 8px;
+  background: var(--editor-primary-10);
+}
+
+.editor-qr-area__text {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--editor-primary);
+  text-align: center;
+  line-height: 1.5;
+}
+
+/* ──────── フッター ──────── */
+.editor-footer {
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+}
+
+/* ページネーション（サムネイル横スクロール） */
+.editor-pagination {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+}
+
+.editor-pagination__track {
+  display: flex;
+  gap: 16px;
+  padding: 0 16px;
+  overflow-x: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--editor-primary-20) transparent;
+  position: relative;
+}
+
+.editor-pagination__track::-webkit-scrollbar {
+  height: 6px;
+}
+
+.editor-pagination__track::-webkit-scrollbar-thumb {
+  background: var(--editor-primary-20);
+  border-radius: 3px;
+}
+
+.editor-pagination__page {
+  display: flex;
+  gap: 1px;
+  flex-shrink: 0;
+  width: 125px;
+  box-shadow: 0 0 5px rgba(0, 0, 0, 0.15);
+  cursor: pointer;
+  border: 2px solid transparent;
+  transition: border-color 0.15s ease;
+  position: relative;
+}
+
+.editor-pagination__page--active {
+  border-color: var(--editor-primary);
+  background: var(--editor-primary-10);
+}
+
+.editor-pagination__page:hover:not(.editor-pagination__page--active) {
+  border-color: var(--editor-primary-50);
+}
+
+.editor-pagination__page-half {
+  width: 50%;
+  height: 88px;
+  background: white;
+  position: relative;
+  overflow: hidden;
+}
+
+.editor-pagination__page-num {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  padding: 1px 4px;
+  font-size: 12px;
+  color: white;
+  background: linear-gradient(
+    50.63deg,
+    rgba(18, 16, 12, 0.63) 0%,
+    rgba(18, 16, 12, 0.14) 100%
+  );
+  backdrop-filter: blur(4px);
+  min-width: 22px;
+  text-align: center;
+}
+
+/* ページコントロール（ズーム等） */
+.editor-page-control {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 24px;
+  padding: 4px 12px 16px;
+}
+
+/* ページカウンター */
+.editor-page-counter {
+  font-size: 12px;
+  color: var(--editor-primary-50);
+}
+
+/* グリッド表示ボタン */
+.editor-view-toggle {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 136px;
+  padding: 4px 12px;
+  border-radius: 100px;
+  border: none;
+  background: transparent;
+  box-shadow: 0 0 8px rgba(0, 0, 0, 0.16);
+  backdrop-filter: blur(7px);
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--editor-primary);
+  transition: background 0.15s ease;
+}
+
+.editor-view-toggle:hover {
+  background: var(--editor-primary-10);
+}
+
+/* ──────── フェード（ページネーション端） ──────── */
+.editor-pagination__fade-left,
+.editor-pagination__fade-right {
+  position: absolute;
+  top: 0;
+  width: 32px;
+  height: 88px;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.editor-pagination__fade-left {
+  left: 16px;
+  background: linear-gradient(to right, var(--editor-bg), transparent);
+}
+
+.editor-pagination__fade-right {
+  right: 16px;
+  background: linear-gradient(to left, var(--editor-bg), transparent);
+}
