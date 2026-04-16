@@ -7,7 +7,12 @@
  * ページコントロール（ズーム、ページカウンター、グリッド表示切り替え）
  */
 
-import { useEffect, useRef, useState } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  type PointerEvent as ReactPointerEvent,
+} from "react";
 import { useEditorStore } from "../../store/editorStore";
 import {
   getRenderablePageSlots,
@@ -25,8 +30,20 @@ export default function EditorFooter() {
   const setZoom = useEditorStore((s) => s.setZoom);
   const viewMode = useEditorStore((s) => s.viewMode);
   const setViewMode = useEditorStore((s) => s.setViewMode);
-  const [isPaginationScrolling, setIsPaginationScrolling] = useState(false);
-  const scrollEndTimerRef = useRef<number | null>(null);
+  const paginationTrackRef = useRef<HTMLDivElement | null>(null);
+  const paginationScrollbarRef = useRef<HTMLDivElement | null>(null);
+  const scrollHideTimerRef = useRef<number | null>(null);
+  const dragStateRef = useRef<{
+    startClientX: number;
+    startScrollLeft: number;
+  } | null>(null);
+  const [isScrollbarDragging, setIsScrollbarDragging] = useState(false);
+  const [isScrollbarVisible, setIsScrollbarVisible] = useState(false);
+  const [scrollbarThumbStyle, setScrollbarThumbStyle] = useState({
+    width: 0,
+    offset: 0,
+    isScrollable: false,
+  });
 
   const maxSpread = Math.ceil((pages.length - 1) / 2);
 
@@ -46,24 +63,219 @@ export default function EditorFooter() {
     });
   }
 
+  const clearScrollbarHideTimer = () => {
+    if (scrollHideTimerRef.current !== null) {
+      window.clearTimeout(scrollHideTimerRef.current);
+      scrollHideTimerRef.current = null;
+    }
+  };
+
+  const showScrollbarTemporarily = () => {
+    clearScrollbarHideTimer();
+    setIsScrollbarVisible(true);
+    scrollHideTimerRef.current = window.setTimeout(() => {
+      setIsScrollbarVisible(false);
+      scrollHideTimerRef.current = null;
+    }, 700);
+  };
+
   useEffect(() => {
-    return () => {
-      if (scrollEndTimerRef.current !== null) {
-        window.clearTimeout(scrollEndTimerRef.current);
+    const updateScrollbarThumb = () => {
+      const track = paginationTrackRef.current;
+      const scrollbar = paginationScrollbarRef.current;
+
+      if (!track || !scrollbar) {
+        return;
       }
+
+      const maxScrollLeft = Math.max(track.scrollWidth - track.clientWidth, 0);
+      const isScrollable = maxScrollLeft > 0;
+
+      if (!isScrollable) {
+        clearScrollbarHideTimer();
+        setIsScrollbarVisible(false);
+        setScrollbarThumbStyle({
+          width: scrollbar.clientWidth,
+          offset: 0,
+          isScrollable: false,
+        });
+        return;
+      }
+
+      const thumbWidth = Math.max(
+        (track.clientWidth / track.scrollWidth) * scrollbar.clientWidth,
+        72,
+      );
+      const maxThumbOffset = Math.max(scrollbar.clientWidth - thumbWidth, 0);
+      const thumbOffset =
+        maxScrollLeft === 0
+          ? 0
+          : (track.scrollLeft / maxScrollLeft) * maxThumbOffset;
+
+      setScrollbarThumbStyle({
+        width: thumbWidth,
+        offset: thumbOffset,
+        isScrollable: true,
+      });
     };
-  }, []);
 
-  const handlePaginationScroll = () => {
-    setIsPaginationScrolling(true);
+    const frameId = window.requestAnimationFrame(updateScrollbarThumb);
+    const resizeObserver = new ResizeObserver(updateScrollbarThumb);
 
-    if (scrollEndTimerRef.current !== null) {
-      window.clearTimeout(scrollEndTimerRef.current);
+    if (paginationTrackRef.current) {
+      resizeObserver.observe(paginationTrackRef.current);
     }
 
-    scrollEndTimerRef.current = window.setTimeout(() => {
-      setIsPaginationScrolling(false);
-    }, 700);
+    if (paginationScrollbarRef.current) {
+      resizeObserver.observe(paginationScrollbarRef.current);
+    }
+
+    window.addEventListener("resize", updateScrollbarThumb);
+
+    return () => {
+      clearScrollbarHideTimer();
+      window.cancelAnimationFrame(frameId);
+      resizeObserver.disconnect();
+      window.removeEventListener("resize", updateScrollbarThumb);
+    };
+  }, [pages.length, currentSpreadIndex]);
+
+  useEffect(() => {
+    if (!isScrollbarDragging) {
+      return;
+    }
+
+    const handlePointerMove = (event: PointerEvent) => {
+      const track = paginationTrackRef.current;
+      const scrollbar = paginationScrollbarRef.current;
+      const dragState = dragStateRef.current;
+
+      if (!track || !scrollbar || !dragState) {
+        return;
+      }
+
+      const maxScrollLeft = Math.max(track.scrollWidth - track.clientWidth, 0);
+      const maxThumbOffset = Math.max(
+        scrollbar.clientWidth - scrollbarThumbStyle.width,
+        0,
+      );
+
+      if (maxScrollLeft === 0 || maxThumbOffset === 0) {
+        return;
+      }
+
+      const deltaX = event.clientX - dragState.startClientX;
+      const nextScrollLeft =
+        dragState.startScrollLeft + (deltaX / maxThumbOffset) * maxScrollLeft;
+
+      track.scrollLeft = Math.max(0, Math.min(nextScrollLeft, maxScrollLeft));
+    };
+
+    const handlePointerUp = () => {
+      dragStateRef.current = null;
+      setIsScrollbarDragging(false);
+      showScrollbarTemporarily();
+    };
+
+    window.addEventListener("pointermove", handlePointerMove);
+    window.addEventListener("pointerup", handlePointerUp);
+
+    return () => {
+      window.removeEventListener("pointermove", handlePointerMove);
+      window.removeEventListener("pointerup", handlePointerUp);
+    };
+  }, [isScrollbarDragging, scrollbarThumbStyle.width]);
+
+  const handlePaginationScroll = () => {
+    const track = paginationTrackRef.current;
+    const scrollbar = paginationScrollbarRef.current;
+
+    if (!track || !scrollbar) {
+      return;
+    }
+
+    const maxScrollLeft = Math.max(track.scrollWidth - track.clientWidth, 0);
+    const thumbWidth = Math.max(
+      (track.clientWidth / track.scrollWidth) * scrollbar.clientWidth,
+      72,
+    );
+    const maxThumbOffset = Math.max(scrollbar.clientWidth - thumbWidth, 0);
+    const isScrollable = maxScrollLeft > 0;
+
+    if (isScrollable) {
+      showScrollbarTemporarily();
+    } else {
+      clearScrollbarHideTimer();
+      setIsScrollbarVisible(false);
+    }
+
+    setScrollbarThumbStyle({
+      width: thumbWidth,
+      offset:
+        maxScrollLeft === 0
+          ? 0
+          : (track.scrollLeft / maxScrollLeft) * maxThumbOffset,
+      isScrollable,
+    });
+  };
+
+  const handleScrollbarTrackPointerDown = (
+    event: ReactPointerEvent<HTMLDivElement>,
+  ) => {
+    if (!scrollbarThumbStyle.isScrollable) {
+      return;
+    }
+
+    if ((event.target as HTMLElement).closest(".editor-pagination__scrollbar-thumb")) {
+      return;
+    }
+
+    const track = paginationTrackRef.current;
+    const scrollbar = paginationScrollbarRef.current;
+
+    if (!track || !scrollbar) {
+      return;
+    }
+
+    const rect = scrollbar.getBoundingClientRect();
+    const maxScrollLeft = Math.max(track.scrollWidth - track.clientWidth, 0);
+    const maxThumbOffset = Math.max(
+      scrollbar.clientWidth - scrollbarThumbStyle.width,
+      0,
+    );
+    const clickedOffset = Math.max(
+      0,
+      Math.min(
+        event.clientX - rect.left - scrollbarThumbStyle.width / 2,
+        maxThumbOffset,
+      ),
+    );
+
+    track.scrollLeft =
+      maxThumbOffset === 0 ? 0 : (clickedOffset / maxThumbOffset) * maxScrollLeft;
+  };
+
+  const handleScrollbarThumbPointerDown = (
+    event: ReactPointerEvent<HTMLDivElement>,
+  ) => {
+    if (!scrollbarThumbStyle.isScrollable) {
+      return;
+    }
+
+    const track = paginationTrackRef.current;
+
+    if (!track) {
+      return;
+    }
+
+    event.preventDefault();
+    clearScrollbarHideTimer();
+    setIsScrollbarVisible(true);
+    dragStateRef.current = {
+      startClientX: event.clientX,
+      startScrollLeft: track.scrollLeft,
+    };
+    setIsScrollbarDragging(true);
   };
 
   return (
@@ -71,10 +283,8 @@ export default function EditorFooter() {
       {/* ページネーション */}
       <div className="editor-pagination">
         <div
-          className={`editor-pagination__track ${
-            isPaginationScrolling ? "editor-pagination__track--scrolling" : ""
-          }`}
-          style={{ position: "relative" }}
+          ref={paginationTrackRef}
+          className="editor-pagination__track"
           onScroll={handlePaginationScroll}
         >
           {/* 左フェード */}
@@ -162,6 +372,24 @@ export default function EditorFooter() {
 
           {/* 右フェード */}
           <div className="editor-pagination__fade-right" />
+        </div>
+
+        <div
+          ref={paginationScrollbarRef}
+          className={`editor-pagination__scrollbar ${
+            isScrollbarDragging ? "editor-pagination__scrollbar--dragging" : ""
+          } ${scrollbarThumbStyle.isScrollable && isScrollbarVisible ? "" : "editor-pagination__scrollbar--hidden"}`}
+          aria-hidden="true"
+          onPointerDown={handleScrollbarTrackPointerDown}
+        >
+          <div
+            className="editor-pagination__scrollbar-thumb"
+            style={{
+              width: `${scrollbarThumbStyle.width}px`,
+              transform: `translateX(${scrollbarThumbStyle.offset}px)`,
+            }}
+            onPointerDown={handleScrollbarThumbPointerDown}
+          />
         </div>
       </div>
 
