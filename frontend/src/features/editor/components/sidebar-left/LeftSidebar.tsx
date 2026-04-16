@@ -11,11 +11,11 @@ import LayoutSelector from "./LayoutSelector";
 export default function LeftSidebar() {
   return (
     <div className="editor-sidebar-left">
-      {/* テンプレート使用ボタン */}
-      <button className="editor-template-btn">
-        <span className="editor-template-btn__title">テンプレートを使用</span>
-        <span className="editor-template-btn__sub">全3タイプ</span>
-      </button>
+      {/* テンプレート情報 */}
+      <div className="editor-template-info">
+        <span className="editor-template-info__title">テンプレートを使用</span>
+        <span className="editor-template-info__sub">全3タイプ</span>
+      </div>
 
       {/* レイアウト選択 */}
       <LayoutSelector />

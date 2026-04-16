@@ -14,6 +14,7 @@ import type {
 import type { LayoutTemplate } from "@/lib/layouts/types";
 import { ALL_LAYOUTS } from "@/lib/layouts/registry";
 import { mockPages, mockPhotos } from "../data/mockData";
+import type { EditablePageSide } from "../utils/pageSelection";
 
 interface EditorState {
   /* ─── データ ─── */
@@ -23,6 +24,7 @@ interface EditorState {
 
   /* ─── UI 状態 ─── */
   currentSpreadIndex: number;
+  selectedPageSide: EditablePageSide;
   selectedLayoutCategory: string;
   zoomLevel: number;
   viewMode: ViewMode;
@@ -31,6 +33,7 @@ interface EditorState {
   goToSpread: (index: number) => void;
   nextSpread: () => void;
   prevSpread: () => void;
+  setSelectedPageSide: (side: EditablePageSide) => void;
   setLayoutCategory: (category: string) => void;
   applyLayout: (pageIndex: number, layoutId: string) => void;
   setZoom: (level: number) => void;
@@ -44,6 +47,19 @@ function getMaxSpreadIndex(pages: AlbumPage[]): number {
   return Math.ceil((pages.length - 1) / 2);
 }
 
+function cloneLayoutSlots(layout: LayoutTemplate) {
+  return layout.slots.map((slot) => ({ ...slot }));
+}
+
+function getSpreadPageIndexes(pageIndex: number) {
+  if (pageIndex <= 0) {
+    return [pageIndex] as const;
+  }
+
+  const leftIndex = pageIndex % 2 === 0 ? pageIndex - 1 : pageIndex;
+  return [leftIndex, leftIndex + 1] as const;
+}
+
 export const useEditorStore = create<EditorState>()(
   immer((set) => ({
     /* ─── 初期値（モックデータ） ─── */
@@ -52,6 +68,7 @@ export const useEditorStore = create<EditorState>()(
     photos: mockPhotos,
 
     currentSpreadIndex: 1, // 最初の見開き（表紙の次）
+    selectedPageSide: "right",
     selectedLayoutCategory: "全て",
     zoomLevel: 70,
     viewMode: "spread",
@@ -78,6 +95,11 @@ export const useEditorStore = create<EditorState>()(
         }
       }),
 
+    setSelectedPageSide: (side) =>
+      set((state) => {
+        state.selectedPageSide = side;
+      }),
+
     setLayoutCategory: (category) =>
       set((state) => {
         state.selectedLayoutCategory = category;
@@ -87,8 +109,25 @@ export const useEditorStore = create<EditorState>()(
       set((state) => {
         const layout = state.layouts.find((l) => l.id === layoutId);
         if (!layout || !state.pages[pageIndex]) return;
+
+        if (layout.category === "見開き" && pageIndex > 0) {
+          const [leftIndex, rightIndex] = getSpreadPageIndexes(pageIndex);
+
+          if (state.pages[leftIndex]) {
+            state.pages[leftIndex].layoutId = layoutId;
+            state.pages[leftIndex].slots = cloneLayoutSlots(layout);
+          }
+
+          if (state.pages[rightIndex]) {
+            state.pages[rightIndex].layoutId = layoutId;
+            state.pages[rightIndex].slots = cloneLayoutSlots(layout);
+          }
+
+          return;
+        }
+
         state.pages[pageIndex].layoutId = layoutId;
-        state.pages[pageIndex].slots = layout.slots.map((s) => ({ ...s }));
+        state.pages[pageIndex].slots = cloneLayoutSlots(layout);
       }),
 
     setZoom: (level) =>

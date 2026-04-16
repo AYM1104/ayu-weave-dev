@@ -8,6 +8,10 @@
 
 import { useState } from "react";
 import { useEditorStore } from "../../store/editorStore";
+import {
+  resolveSelectedPageIndex,
+  resolveSelectedPageSide,
+} from "../../utils/pageSelection";
 import { LAYOUT_CATEGORIES } from "@/lib/layouts/registry";
 import LayoutThumbnail from "./LayoutThumbnail";
 
@@ -17,15 +21,30 @@ export default function LayoutSelector() {
   );
   const pages = useEditorStore((s) => s.pages);
   const currentSpreadIndex = useEditorStore((s) => s.currentSpreadIndex);
+  const selectedPageSide = useEditorStore((s) => s.selectedPageSide);
   const applyLayout = useEditorStore((s) => s.applyLayout);
   const selectedLayoutCategory = useEditorStore(
     (s) => s.selectedLayoutCategory,
   );
   const setLayoutCategory = useEditorStore((s) => s.setLayoutCategory);
 
-  /** 現在表示中の見開き右ページのレイアウトID（選択状態の表示用） */
-  const currentPageIndex = currentSpreadIndex === 0 ? 0 : currentSpreadIndex * 2 - 1;
+  const currentPageIndex = resolveSelectedPageIndex(
+    currentSpreadIndex,
+    selectedPageSide,
+    pages.length,
+  );
+  const currentEditableSide = resolveSelectedPageSide(
+    currentSpreadIndex,
+    selectedPageSide,
+    pages.length,
+  );
   const currentLayoutId = pages[currentPageIndex]?.layoutId ?? "";
+  const currentTargetLabel =
+    currentSpreadIndex === 0
+      ? "表紙"
+      : currentEditableSide === "left"
+        ? "左ページ"
+        : "右ページ";
 
   const toggleCategory = (name: string) => {
     setOpenCategories((prev) => {
@@ -44,7 +63,7 @@ export default function LayoutSelector() {
   };
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 12, width: 256 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
       {/* セレクトボックス */}
       <select
         className="editor-layout-select"
@@ -58,6 +77,16 @@ export default function LayoutSelector() {
           </option>
         ))}
       </select>
+
+      <div
+        style={{
+          fontSize: 12,
+          color: "var(--editor-primary-80)",
+          fontWeight: 600,
+        }}
+      >
+        編集対象: {currentTargetLabel}
+      </div>
 
       {/* カテゴリ別アコーディオン */}
       {LAYOUT_CATEGORIES
