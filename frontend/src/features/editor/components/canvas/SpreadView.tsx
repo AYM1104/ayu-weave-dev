@@ -7,9 +7,9 @@
  * 各ページ内にはレイアウトテンプレートのスロットを描画する。
  */
 
-import { useState, type KeyboardEvent } from "react";
+import { useMemo, useState, type KeyboardEvent, type MouseEvent } from "react";
 import { useEditorStore } from "../../store/editorStore";
-import type { AlbumPage, PhotoSlot } from "../../types/editor";
+import type { AlbumPage, PhotoSlot, UploadedPhoto } from "../../types/editor";
 import {
   getRenderablePageSlots,
   getSpreadLayoutSource,
@@ -19,6 +19,20 @@ import { resolveSelectedPageSide } from "../../utils/pageSelection";
 interface RenderableSlot extends PhotoSlot {
   renderKey: string;
   interactionKey: string;
+  sourcePageIndex: number;
+}
+
+function getPhotoStatusLabel(photo: UploadedPhoto) {
+  switch (photo.status) {
+    case "uploading":
+      return "アップロード中";
+    case "processing":
+      return "画像処理中";
+    case "error":
+      return "エラー";
+    default:
+      return "";
+  }
 }
 
 /** ページ1枚分の描画 */
@@ -34,6 +48,10 @@ function PageView({
   onSelect,
   activeSlotKey,
   onSlotActiveChange,
+  selectedSlotId,
+  selectedSlotPageIndex,
+  onSlotSelect,
+  getPhotoById,
 }: {
   hasPage: boolean;
   side: "left" | "right";
@@ -46,6 +64,10 @@ function PageView({
   onSelect: (side: "left" | "right") => void;
   activeSlotKey: string | null;
   onSlotActiveChange: (slotKey: string | null) => void;
+  selectedSlotId: string | null;
+  selectedSlotPageIndex: number | null;
+  onSlotSelect: (pageIndex: number, slotId: string) => void;
+  getPhotoById: (photoId: string | null) => UploadedPhoto | undefined;
 }) {
   if (!hasPage) {
     return (
@@ -63,6 +85,26 @@ function PageView({
     }
   };
 
+  const handleSlotKeyDown = (
+    event: KeyboardEvent<HTMLDivElement>,
+    slot: RenderableSlot,
+  ) => {
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      onSelect(side);
+      onSlotSelect(slot.sourcePageIndex, slot.id);
+    }
+  };
+
+  const handleSlotClick = (
+    event: MouseEvent<HTMLDivElement>,
+    slot: RenderableSlot,
+  ) => {
+    event.stopPropagation();
+    onSelect(side);
+    onSlotSelect(slot.sourcePageIndex, slot.id);
+  };
+
   return (
     <div
       className={`editor-spread__page editor-spread__page--${side} ${isSelected ? "editor-spread__page--selected" : ""}`}
@@ -74,34 +116,52 @@ function PageView({
       onClick={() => onSelect(side)}
       onKeyDown={handleKeyDown}
     >
-      {/* スロットの描画 */}
-      {slots.map((slot) => (
-        <div
-          key={slot.renderKey}
-          className={`editor-slot ${activeSlotKey === slot.interactionKey ? "editor-slot--active" : ""}`}
-          style={{
-            left: `${slot.x * 100}%`,
-            top: `${slot.y * 100}%`,
-            width: `${slot.width * 100}%`,
-            height: `${slot.height * 100}%`,
-            borderRadius: slot.borderRadius
-              ? `${slot.borderRadius}px`
-              : undefined,
-          }}
-          onMouseEnter={() => onSlotActiveChange(slot.interactionKey)}
-          onMouseLeave={() => onSlotActiveChange(null)}
-        >
-          {slot.photoId ? (
-            <img
-              className="editor-slot__image"
-              src={`https://picsum.photos/seed/${slot.photoId}/400/400`}
-              alt=""
-            />
-          ) : null}
-        </div>
-      ))}
+      {slots.map((slot) => {
+        const photo = getPhotoById(slot.photoId);
+        const isSlotSelected =
+          selectedSlotId === slot.id &&
+          selectedSlotPageIndex === slot.sourcePageIndex;
 
-      {/* ページレイアウト比率ラベル */}
+        return (
+          <div
+            key={slot.renderKey}
+            className={`editor-slot ${activeSlotKey === slot.interactionKey ? "editor-slot--active" : ""} ${isSlotSelected ? "editor-slot--selected" : ""}`}
+            style={{
+              left: `${slot.x * 100}%`,
+              top: `${slot.y * 100}%`,
+              width: `${slot.width * 100}%`,
+              height: `${slot.height * 100}%`,
+              borderRadius: slot.borderRadius
+                ? `${slot.borderRadius}px`
+                : undefined,
+            }}
+            role="button"
+            tabIndex={0}
+            aria-label="写真スロットを選択する"
+            aria-pressed={isSlotSelected}
+            onMouseEnter={() => onSlotActiveChange(slot.interactionKey)}
+            onMouseLeave={() => onSlotActiveChange(null)}
+            onClick={(event) => handleSlotClick(event, slot)}
+            onKeyDown={(event) => handleSlotKeyDown(event, slot)}
+          >
+            {photo?.thumbnailUrl ? (
+              <>
+                <img
+                  className="editor-slot__image"
+                  src={photo.thumbnailUrl}
+                  alt={photo.fileName}
+                />
+                {photo.status !== "ready" ? (
+                  <span className="editor-slot__status">
+                    {getPhotoStatusLabel(photo)}
+                  </span>
+                ) : null}
+              </>
+            ) : null}
+          </div>
+        );
+      })}
+
       {showRatioLabel && layoutId ? (
         <span className="editor-spread__ratio-label">
           {layoutId.startsWith("spread") ? "4:3" : "1:1"}
@@ -118,34 +178,45 @@ interface SpreadViewProps {
 export default function SpreadView({ zoomLevel }: SpreadViewProps) {
   const pages = useEditorStore((s) => s.pages);
   const layouts = useEditorStore((s) => s.layouts);
+  const photos = useEditorStore((s) => s.photos);
   const currentSpreadIndex = useEditorStore((s) => s.currentSpreadIndex);
   const selectedPageSide = useEditorStore((s) => s.selectedPageSide);
+  const selectedSlotId = useEditorStore((s) => s.selectedSlotId);
+  const selectedSlotPageIndex = useEditorStore((s) => s.selectedSlotPageIndex);
   const setSelectedPageSide = useEditorStore((s) => s.setSelectedPageSide);
+  const setSelectedSlot = useEditorStore((s) => s.setSelectedSlot);
   const [activeSlotKey, setActiveSlotKey] = useState<string | null>(null);
 
-  // 見開きインデックスからページを取得
-  // spread 0 = 表紙（1ページのみ）, spread 1 = page1+page2, ...
+  const photoMap = useMemo(
+    () => new Map(photos.map((photo) => [photo.id, photo])),
+    [photos],
+  );
+
   let leftPage: AlbumPage | null = null;
   let rightPage: AlbumPage | null = null;
+  let leftPageIndex: number | null = null;
+  let rightPageIndex: number | null = null;
 
   if (currentSpreadIndex === 0) {
-    // 表紙
     leftPage = null;
+    leftPageIndex = null;
     rightPage = pages[0] ?? null;
+    rightPageIndex = 0;
   } else {
-    const leftIndex = currentSpreadIndex * 2 - 1;
-    const rightIndex = currentSpreadIndex * 2;
-    leftPage = pages[leftIndex] ?? null;
-    rightPage = pages[rightIndex] ?? null;
+    leftPageIndex = currentSpreadIndex * 2 - 1;
+    rightPageIndex = currentSpreadIndex * 2;
+    leftPage = pages[leftPageIndex] ?? null;
+    rightPage = pages[rightPageIndex] ?? null;
   }
 
-  // zoom レベルに応じたページサイズ
   const scale = zoomLevel / 100;
   const basePageWidth = 439;
   const basePageHeight = 620;
   const pageWidth = basePageWidth * scale;
   const pageHeight = basePageHeight * scale;
   const spreadLayoutSource = getSpreadLayoutSource(leftPage, rightPage, layouts);
+  const spreadSourcePageIndex = leftPageIndex ?? rightPageIndex ?? 0;
+
   const leftSlots: RenderableSlot[] = getRenderablePageSlots(
     leftPage,
     "left",
@@ -158,7 +229,10 @@ export default function SpreadView({ zoomLevel }: SpreadViewProps) {
       spreadLayoutSource !== null
         ? `spread-${slot.id}`
         : `${leftPage?.id ?? "left"}-${slot.id}`,
+    sourcePageIndex:
+      spreadLayoutSource !== null ? spreadSourcePageIndex : (leftPageIndex ?? 0),
   }));
+
   const rightSlots: RenderableSlot[] = getRenderablePageSlots(
     rightPage,
     "right",
@@ -171,7 +245,10 @@ export default function SpreadView({ zoomLevel }: SpreadViewProps) {
       spreadLayoutSource !== null
         ? `spread-${slot.id}`
         : `${rightPage?.id ?? "right"}-${slot.id}`,
+    sourcePageIndex:
+      spreadLayoutSource !== null ? spreadSourcePageIndex : (rightPageIndex ?? 0),
   }));
+
   const leftLayoutId = spreadLayoutSource?.layout.id ?? leftPage?.layoutId ?? "";
   const rightLayoutId =
     spreadLayoutSource?.layout.id ?? rightPage?.layoutId ?? "";
@@ -183,9 +260,8 @@ export default function SpreadView({ zoomLevel }: SpreadViewProps) {
   );
 
   return (
-    <div className="editor-spread" style={{ transform: `scale(1)` }}>
-      {/* 左ページ */}
-      {leftPage && (
+    <div className="editor-spread" style={{ transform: "scale(1)" }}>
+      {leftPage && leftPageIndex !== null ? (
         <>
           <PageView
             hasPage
@@ -199,13 +275,15 @@ export default function SpreadView({ zoomLevel }: SpreadViewProps) {
             onSelect={setSelectedPageSide}
             activeSlotKey={activeSlotKey}
             onSlotActiveChange={setActiveSlotKey}
+            selectedSlotId={selectedSlotId}
+            selectedSlotPageIndex={selectedSlotPageIndex}
+            onSlotSelect={setSelectedSlot}
+            getPhotoById={(photoId) => (photoId ? photoMap.get(photoId) : undefined)}
           />
-          {/* 綴じ（スパイン） */}
           <div className="editor-spread__spine" />
         </>
-      )}
+      ) : null}
 
-      {/* 右ページ */}
       <PageView
         hasPage={!!rightPage}
         side="right"
@@ -218,6 +296,10 @@ export default function SpreadView({ zoomLevel }: SpreadViewProps) {
         onSelect={setSelectedPageSide}
         activeSlotKey={activeSlotKey}
         onSlotActiveChange={setActiveSlotKey}
+        selectedSlotId={selectedSlotId}
+        selectedSlotPageIndex={selectedSlotPageIndex}
+        onSlotSelect={setSelectedSlot}
+        getPhotoById={(photoId) => (photoId ? photoMap.get(photoId) : undefined)}
       />
 
       {spreadLayoutSource ? (
