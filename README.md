@@ -63,7 +63,7 @@
 | 認証 | Firebase (Google OAuth) |
 | バックエンド | FastAPI (Python 3.13) / Uvicorn |
 | DB / ORM | PostgreSQL / SQLAlchemy (asyncio) / Alembic |
-| ストレージ | Google Cloud Storage |
+| ストレージ | Amazon S3 |
 | デプロイ | Cloud Run / GitHub Actions |
 | テスト | Vitest / Playwright |
 
