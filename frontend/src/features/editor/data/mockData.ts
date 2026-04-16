@@ -20,8 +20,9 @@ function createMockPage(pageNumber: number, layoutId: string): AlbumPage {
 }
 
 export const mockPages: AlbumPage[] = [
-  // 表紙（pageNumber=0）
+  // 表紙
   createMockPage(0, "single-1photo-full"),
+
   // 本文ページ
   createMockPage(1, "spread-1photo-full"),
   createMockPage(2, "spread-2photo-cols"),
@@ -37,13 +38,32 @@ export const mockPages: AlbumPage[] = [
   createMockPage(12, "single-2photo-rows-inset"),
   createMockPage(13, "single-multi-5step"),
   createMockPage(14, "single-1photo-top-full-width"),
+  createMockPage(15, "spread-2photo-cols"),
+  createMockPage(16, "single-2photo-center-stack"),
+  createMockPage(17, "single-1photo-bottom-right"),
+  createMockPage(18, "spread-1photo-hero"),
+  createMockPage(19, "single-3photo-top-hero-inset"),
+  createMockPage(20, "single-multi-6inset-grid"),
+  createMockPage(21, "spread-4photo-grid"),
+  createMockPage(22, "single-text-photo-caption"),
+  createMockPage(23, "single-1photo-wide-center"),
+  createMockPage(24, "spread-1photo-full"),
+  createMockPage(25, "single-2photo-rows-inset"),
+  createMockPage(26, "single-multi-5step"),
+  createMockPage(27, "single-1photo-top-full-width"),
+  createMockPage(28, "spread-1photo-full"),
+  createMockPage(29, "spread-2photo-cols"),
+
+  // 背表紙
+  createMockPage(30, "single-1photo-full"),
 ];
 
 /* ─── モック写真データ ─── */
 
-export const mockPhotos: UploadedPhoto[] = Array.from({ length: 8 }, (_, i) => ({
-  id: `photo-${i + 1}`,
-  thumbnailUrl: `https://picsum.photos/seed/weave${i + 1}/200/200`,
-  fileName: `wedding_${String(i + 1).padStart(3, "0")}.jpg`,
-  used: false,
-}));
+export const mockPhotos: UploadedPhoto[] = [];
+// Array.from({ length: 8 }, (_, i) => ({
+//   id: `photo-${i + 1}`,
+//   thumbnailUrl: `https://picsum.photos/seed/weave${i + 1}/200/200`,
+//   fileName: `wedding_${String(i + 1).padStart(3, "0")}.jpg`,
+//   used: false,
+// }));

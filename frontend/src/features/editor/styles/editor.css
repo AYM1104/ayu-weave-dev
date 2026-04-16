@@ -58,38 +58,6 @@
   position: relative;
 }
 
-/* ──────── ヘッダー (menu) ──────── */
-.editor-header {
-  display: flex;
-  align-items: flex-end;
-  justify-content: center;
-  padding: 8px 16px 4px;
-  z-index: 20;
-  flex-shrink: 0;
-  height: var(--editor-header-height);
-}
-
-.editor-header__menu-btn {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  padding: 2px 8px;
-  border-radius: 4px;
-  background: var(--editor-primary-10);
-  backdrop-filter: blur(4px);
-  box-shadow: 0 0 8px rgba(0, 0, 0, 0.07);
-  border: none;
-  cursor: pointer;
-  font-size: 18px;
-  font-weight: 300;
-  color: var(--editor-primary);
-  letter-spacing: 0.36px;
-}
-
-.editor-header__menu-btn:hover {
-  background: var(--editor-primary-20);
-}
-
 /* ──────── コントロールバー ──────── */
 .editor-controlbar {
   display: flex;
@@ -209,6 +177,13 @@
   padding: 12px;
   overflow-y: auto;
   position: relative;
+  /* スクロールバー非表示 */
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
+}
+
+.editor-sidebar-left::-webkit-scrollbar {
+  display: none; /* Chrome, Safari and Opera */
 }
 
 /* 下部のフェードグラデーション */
@@ -224,8 +199,8 @@
   flex-shrink: 0;
 }
 
-/* テンプレート使用ボタン */
-.editor-template-btn {
+/* テンプレート情報 */
+.editor-template-info {
   width: 100%;
   height: 88px;
   border-radius: 16px;
@@ -237,25 +212,19 @@
   justify-content: center;
   padding: 12px 16px;
   border: none;
-  cursor: pointer;
   overflow: hidden;
   position: relative;
-  transition: transform 0.2s ease;
   flex-shrink: 0;
 }
 
-.editor-template-btn:hover {
-  transform: scale(1.02);
-}
-
-.editor-template-btn__title {
+.editor-template-info__title {
   font-size: 14px;
   font-weight: 600;
   text-align: center;
   width: 126px;
 }
 
-.editor-template-btn__sub {
+.editor-template-info__sub {
   font-size: 12px;
   font-weight: 300;
 }
@@ -330,13 +299,14 @@
 
 /* レイアウトサムネイルグリッド */
 .editor-layout-grid {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
   gap: 4px;
   width: 100%;
 }
 
 .editor-layout-grid--square {
+  grid-template-columns: repeat(3, 1fr);
   gap: 12px;
 }
 
@@ -345,28 +315,49 @@
   background: white;
   overflow: hidden;
   cursor: pointer;
-  border: 2px solid transparent;
+  border: 0px solid transparent;
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
+.editor-layout-thumb::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--editor-primary-20);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s ease;
+}
+
 .editor-layout-thumb:hover {
-  border-color: var(--editor-primary-50);
-  box-shadow: 0 0 0 1px var(--editor-primary-20);
+  box-shadow: none;
+}
+
+.editor-layout-thumb:hover::after {
+  opacity: 1;
 }
 
 .editor-layout-thumb--selected {
-  border-color: var(--editor-primary);
-  box-shadow: 0 0 0 2px var(--editor-primary-20);
+  border-color: transparent;
+  box-shadow: none;
+}
+
+.editor-layout-thumb--selected::after {
+  opacity: 0.12;
+}
+
+.editor-layout-thumb--selected:hover::after {
+  opacity: 0.2;
 }
 
 .editor-layout-thumb--spread {
-  width: 126px;
-  height: 89px;
+  width: 100%;
+  aspect-ratio: 126 / 89;
 }
 
 .editor-layout-thumb--square {
-  width: 77px;
-  height: 109px;
+  width: 100%;
+  aspect-ratio: 77 / 109;
 }
 
 .editor-layout-thumb__slot {
@@ -399,6 +390,9 @@
 
 /* ページ送りボタン */
 .editor-page-nav {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -413,6 +407,14 @@
   flex-shrink: 0;
   transition: background 0.15s ease;
   z-index: 5;
+}
+
+.editor-page-nav--prev {
+  left: 56px;
+}
+
+.editor-page-nav--next {
+  right: 56px;
 }
 
 .editor-page-nav:hover {
@@ -432,12 +434,26 @@
   box-shadow: 0 0 8px rgba(0, 0, 0, 0.12);
   flex-shrink: 0;
   transition: transform 0.15s ease;
+  position: relative;
 }
 
 .editor-spread__page {
   position: relative;
   background: white;
   overflow: hidden;
+  cursor: pointer;
+  transition: box-shadow 0.15s ease, outline-color 0.15s ease;
+}
+
+.editor-spread__page:focus-visible {
+  outline: 2px solid var(--editor-primary);
+  outline-offset: -2px;
+}
+
+.editor-spread__page--selected {
+  outline: 2px solid var(--editor-primary-50);
+  outline-offset: -2px;
+  z-index: 1;
 }
 
 /* ページ内の影（内側） */
@@ -470,6 +486,10 @@
   transform: translate(-50%, -50%);
 }
 
+.editor-spread__ratio-label--spread {
+  z-index: 2;
+}
+
 /* スロット（写真配置枠） */
 .editor-slot {
   position: absolute;
@@ -482,6 +502,10 @@
 }
 
 .editor-slot:hover {
+  box-shadow: 0 0 0 2px var(--editor-primary-50);
+}
+
+.editor-slot--active {
   box-shadow: 0 0 0 2px var(--editor-primary-50);
 }
 
@@ -500,56 +524,74 @@
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  gap: 12px;
+  min-height: 0;
 }
 
 .editor-upload-area {
   flex: 1;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
+  align-items: stretch;
+  justify-content: space-between;
+  gap: 24px;
+  min-height: 0;
+  padding: 20px;
   background: var(--editor-primary-08);
-  border: 1px dashed var(--editor-primary-50);
+  border: 1px dashed var(--editor-primary-20);
   position: relative;
   cursor: pointer;
-  transition: background 0.15s ease;
+  transition: background 0.15s ease, border-color 0.15s ease;
 }
 
 .editor-upload-area:hover {
   background: var(--editor-primary-10);
+  border-color: rgba(75, 65, 48, 0.28);
+}
+
+.editor-upload-area__body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  padding: 8px 0 0;
 }
 
 .editor-upload-area__icon {
-  width: 32px;
-  height: 32px;
-  border-radius: 8px;
-  background: linear-gradient(to bottom, #f5f4f1, #cbc7c0);
-  border: 1px solid rgba(64, 12, 4, 0.05);
-  box-shadow: 0 0 7px rgba(0, 0, 0, 0.1);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 20px;
-  color: var(--editor-primary-80);
+  width: 46px;
+  height: 46px;
+  overflow: visible;
+}
+
+.editor-upload-area__icon svg {
+  width: 100%;
+  height: 100%;
+  display: block;
 }
 
 .editor-upload-area__text {
   text-align: center;
   font-size: 14px;
   color: var(--editor-primary);
-  line-height: 1.6;
+  line-height: 1.55;
+  letter-spacing: 0.02em;
 }
 
 .editor-upload-area__text--bold {
-  font-weight: 600;
+  font-weight: 700;
 }
 
 .editor-upload-area__hint {
   text-align: center;
   font-size: 12px;
   color: var(--editor-primary-50);
-  line-height: 1.5;
+  line-height: 1.55;
 }
 
 /* 写真サムネイルグリッド（アップロード済み写真） */
@@ -557,9 +599,10 @@
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 8px;
-  padding: 12px 0;
+  padding: 0;
   overflow-y: auto;
   flex: 1;
+  min-height: 0;
 }
 
 .editor-photo-thumb {
@@ -596,28 +639,33 @@
 /* QRコードエリア */
 .editor-qr-area {
   background: var(--editor-primary-10);
-  border-radius: 4px;
-  padding: 24px 12px;
+  border-radius: 10px;
+  padding: 18px 16px 20px;
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 16px;
-  margin-top: auto;
 }
 
-.editor-qr-area__placeholder {
-  width: 88px;
-  height: 88px;
-  border-radius: 8px;
-  background: var(--editor-primary-10);
+.editor-qr-area--standalone {
+  flex-shrink: 0;
+}
+
+.editor-qr-area__code {
+  width: 160px;
+  max-width: 100%;
+  aspect-ratio: 1;
+  object-fit: contain;
+  display: block;
+  border-radius: 12px;
 }
 
 .editor-qr-area__text {
-  font-size: 12px;
-  font-weight: 600;
+  font-size: 14px;
+  font-weight: 700;
   color: var(--editor-primary);
   text-align: center;
-  line-height: 1.5;
+  line-height: 1.45;
 }
 
 /* ──────── フッター ──────── */
@@ -633,25 +681,64 @@
   flex-direction: column;
   gap: 8px;
   width: 100%;
+  padding: 0 56px; /* 両サイドにスクロール領域外の余白をつける */
 }
 
 .editor-pagination__track {
   display: flex;
   gap: 16px;
-  padding: 0 16px;
+  padding: 0 16px 8px;
   overflow-x: auto;
+  overflow-y: hidden;
   scrollbar-width: thin;
-  scrollbar-color: var(--editor-primary-20) transparent;
+  scrollbar-color: transparent transparent;
+  -ms-overflow-style: none;
   position: relative;
+  scrollbar-gutter: stable both-edges;
 }
 
 .editor-pagination__track::-webkit-scrollbar {
-  height: 6px;
+  height: 16px;
+}
+
+.editor-pagination__track--scrolling::-webkit-scrollbar {
+  height: 36px;
+}
+
+.editor-pagination__track::-webkit-scrollbar-track {
+  background: transparent;
+  border-radius: 999px;
 }
 
 .editor-pagination__track::-webkit-scrollbar-thumb {
-  background: var(--editor-primary-20);
-  border-radius: 3px;
+  background: transparent;
+  border-radius: 999px;
+}
+
+.editor-pagination__track--scrolling {
+  scrollbar-color: var(--editor-primary) var(--editor-primary-10);
+}
+
+.editor-pagination__track--scrolling::-webkit-scrollbar-track {
+  background: var(--editor-primary-10);
+  background-clip: padding-box;
+  border-top: 14px solid transparent;
+  border-bottom: 14px solid transparent;
+  border-radius: 999px;
+}
+
+/* ズームスライダー風のツマミ */
+.editor-pagination__track--scrolling::-webkit-scrollbar-thumb {
+  background: white;
+  background-clip: padding-box;
+  border-top: 4px solid transparent;
+  border-bottom: 4px solid transparent;
+  border-radius: 999px;
+  box-shadow: 0 4px 8px rgba(48, 49, 51, 0.16), 0 0 1px rgba(48, 49, 51, 0.22);
+}
+
+.editor-pagination__track--scrolling::-webkit-scrollbar-thumb:hover {
+  background: #fdfdfd;
 }
 
 .editor-pagination__page {
