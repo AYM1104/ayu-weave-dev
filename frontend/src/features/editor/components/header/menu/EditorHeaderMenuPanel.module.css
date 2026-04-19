@@ -1,0 +1,163 @@
+/* =========================================================================
+ *  メニューパネル本体
+ * ========================================================================= */
+.panel {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 50%;
+  z-index: 41;
+  width: min(264px, calc(100vw - 24px));
+  max-height: calc(100vh - 96px);
+  overflow-y: auto;
+  transform: translateX(-50%);
+  isolation: isolate;
+  border-radius: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  background: transparent;
+  box-shadow:
+    0 12px 30px rgba(64, 12, 4, 0.18),
+    0 2px 12px rgba(64, 12, 4, 0.06),
+    inset 0 1px 0 rgba(255, 255, 255, 0.26);
+  -webkit-backdrop-filter: blur(10px) saturate(1.08);
+  backdrop-filter: blur(10px) saturate(1.08);
+}
+
+/* =========================================================================
+ *  メニューパネルの背景
+ * ========================================================================= */
+.panel::before {
+  content: none;
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.2) 0%,
+    rgba(255, 255, 255, 0.08) 40%,
+    rgba(255, 255, 255, 0.14) 100%
+  );
+  pointer-events: none;
+}
+
+/* =========================================================================
+ *  メニューリスト
+ * ========================================================================= */
+.menuList {
+  position: relative;
+  z-index: 1;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+/* =========================================================================
+ *  メニューアイテム
+ * ========================================================================= */
+.menuItemWithDivider {
+  position: relative;
+}
+
+.menuItemWithDivider::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 2;
+  height: 1px;
+  background: rgba(18, 16, 12, 0.08);
+}
+
+.menuItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  min-height: 56px;
+  padding: 16px;
+  border: none;
+  background: transparent;
+  color: var(--editor-text);
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background 0.18s ease;
+}
+
+.menuItem:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.menuItem:focus-visible {
+  outline: 2px solid var(--editor-primary-50);
+  outline-offset: -2px;
+}
+
+/* =========================================================================
+ *  メニューアイテムラベル
+ * ========================================================================= */
+.menuItemLabel {
+  font-size: 16px;
+  font-weight: 400;
+  letter-spacing: -0.05em;
+  line-height: 1.2;
+}
+
+/* =========================================================================
+ *  メニューアイテムアイコン
+ * ========================================================================= */
+.menuItemIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  color: var(--editor-text);
+  flex-shrink: 0;
+  margin-left: 20px;
+}
+
+.menuItemIcon :global(svg) {
+  width: 100%;
+  height: 100%;
+}
+
+/* =========================================================================
+ *  メニューアイテム（区切り線付き）
+ * ========================================================================= */
+.menuItemWithDivider .menuItem {
+  min-height: 68px;
+  background: transparent;
+  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(16px);
+}
+
+.menuItemWithDivider .menuItem:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+/* =========================================================================
+ *  レスポンシブ対応
+ * ========================================================================= */
+@media (max-width: 900px) {
+  .panel {
+    width: min(264px, calc(100vw - 24px));
+  }
+}
+
+@media (max-width: 640px) {
+  .panel {
+    top: calc(100% + 20px);
+    width: calc(100vw - 24px);
+    max-height: calc(100vh - 72px);
+    border-radius: 20px;
+  }
+
+  .menuItem {
+    padding: 14px 24px;
+  }
+
+  .menuItemLabel {
+    font-size: 18px;
+  }
+}

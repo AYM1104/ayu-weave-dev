@@ -21,6 +21,10 @@ class MediaRecord:
     mime_type: str
     byte_size: int
     object_key: str
+    preview_object_key: str | None = None
+    thumbnail_object_key: str | None = None
+    width: int | None = None
+    height: int | None = None
     status: MediaStatus = "pending"
     created_at: datetime = field(default_factory=utc_now)
     updated_at: datetime = field(default_factory=utc_now)

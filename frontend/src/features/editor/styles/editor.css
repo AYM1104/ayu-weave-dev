@@ -43,6 +43,22 @@
 
   /* フッター */
   --editor-footer-height: 140px;
+
+  /* ローディング/オーバーレイ */
+  --editor-skeleton-overlay:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.12), rgba(233, 228, 223, 0.3)),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.18), rgba(255, 255, 255, 0.04));
+  --editor-skeleton-shimmer: linear-gradient(
+    115deg,
+    rgba(255, 255, 255, 0) 12%,
+    rgba(255, 255, 255, 0.5) 48%,
+    rgba(255, 255, 255, 0) 82%
+  );
+
+  /* 右サイドバー下部パネル */
+  --editor-bottom-panel-bg:
+    linear-gradient(180deg, rgba(244, 240, 236, 0), rgba(244, 240, 236, 0.98) 24%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.52), rgba(244, 240, 236, 0.96));
 }
 
 /* ──────── エディター全体のCSSリセット ──────── */
@@ -490,6 +506,16 @@
   z-index: 2;
 }
 
+@keyframes editor-skeleton-shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+
+  100% {
+    transform: translateX(100%);
+  }
+}
+
 /* スロット（写真配置枠） */
 .editor-slot {
   position: absolute;
@@ -517,420 +543,45 @@
   width: 100%;
   height: 100%;
   object-fit: cover;
+  transition: opacity 0.2s ease;
+}
+
+.editor-slot__image--hidden {
+  opacity: 0;
+}
+
+.editor-slot__skeleton {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 1;
+  background: var(--editor-skeleton-overlay);
+  backdrop-filter: blur(1.5px);
+}
+
+.editor-slot__skeleton::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--editor-skeleton-shimmer);
+  animation: editor-skeleton-shimmer 1.5s ease-in-out infinite;
 }
 
 .editor-slot__status {
   position: absolute;
+  z-index: 2;
   left: 8px;
   right: 8px;
   bottom: 8px;
+  border-radius: 999px;
+  background: rgba(18, 16, 12, 0.68);
+  color: white;
+  font-size: 11px;
+  font-weight: 700;
+  text-align: center;
   padding: 4px 6px;
-  border-radius: 999px;
-  background: rgba(18, 16, 12, 0.68);
-  color: white;
-  font-size: 11px;
-  font-weight: 700;
-  text-align: center;
   backdrop-filter: blur(4px);
-}
-
-/* ──────── 右サイドバー ──────── */
-.editor-sidebar-right {
-  width: var(--editor-sidebar-width);
-  flex-shrink: 0;
-  padding: 12px;
-  backdrop-filter: blur(4px);
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-  min-height: 0;
-  background:
-    radial-gradient(circle at top, rgba(255, 255, 255, 0.75), transparent 52%),
-    linear-gradient(180deg, rgba(244, 241, 238, 0.88), rgba(239, 235, 231, 0.82));
-}
-
-.editor-photo-library {
-  flex: 1;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 18px;
-  padding: 8px 8px 12px;
-  border-radius: 22px;
-  background:
-    radial-gradient(circle at top, rgba(255, 255, 255, 0.72), transparent 48%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.52), rgba(244, 240, 236, 0.82));
-  box-shadow: inset 0 0 0 1px rgba(75, 65, 48, 0.08);
-}
-
-.editor-photo-library__toolbar {
-  flex-shrink: 0;
-}
-
-.editor-photo-library__filter-label {
-  display: block;
-}
-
-.editor-photo-library__filter {
-  width: 100%;
-  height: 48px;
-  border-radius: 14px;
-  border: 1px solid rgba(75, 65, 48, 0.16);
-  background-color: rgba(255, 255, 255, 0.9);
-  padding: 0 44px 0 18px;
-  font-size: 16px;
-  font-weight: 500;
-  color: var(--editor-text);
-  appearance: none;
-  cursor: pointer;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 24 24' fill='none' stroke='%234B4130' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: right 14px center;
-}
-
-.editor-photo-library__sections {
-  flex: 1;
-  min-height: 0;
-  overflow-y: auto;
-  display: flex;
-  flex-direction: column;
-  gap: 22px;
-  padding-right: 2px;
-  scrollbar-width: none;
-}
-
-.editor-photo-library__sections::-webkit-scrollbar {
-  display: none;
-}
-
-.editor-photo-library__empty {
-  min-height: 180px;
-  border-radius: 18px;
-  border: 1px dashed rgba(75, 65, 48, 0.18);
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.6), rgba(242, 237, 233, 0.8));
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 24px;
-  text-align: center;
-  color: var(--editor-primary-80);
-  font-size: 14px;
-  line-height: 1.6;
-  cursor: pointer;
-}
-
-.editor-photo-section {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.editor-photo-section__header {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 0;
-  border: none;
-  background: transparent;
-  text-align: left;
-  cursor: pointer;
-  color: var(--editor-primary);
-}
-
-.editor-photo-section__chevron {
-  font-size: 16px;
-  line-height: 1;
-  transform: rotate(-90deg);
-  transition: transform 0.18s ease;
-}
-
-.editor-photo-section__chevron--open {
-  transform: rotate(0deg);
-}
-
-.editor-photo-section__title {
-  font-size: 16px;
-  font-weight: 700;
-}
-
-.editor-photo-section__count {
-  font-size: 16px;
-  font-weight: 400;
-  color: var(--editor-primary-50);
-}
-
-.editor-photo-section__grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 4px;
-}
-
-.editor-photo-card {
-  position: relative;
-  aspect-ratio: 1;
-  padding: 0;
-  border: none;
-  overflow: hidden;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.72), rgba(240, 236, 232, 0.96));
-  cursor: pointer;
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
-}
-
-.editor-photo-card:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 8px 18px rgba(75, 65, 48, 0.12);
-}
-
-.editor-photo-card:disabled {
-  cursor: default;
-  transform: none;
-  box-shadow: none;
-  opacity: 1;
-}
-
-.editor-photo-card--used {
-  box-shadow: inset 0 0 0 2px rgba(75, 65, 48, 0.22);
-}
-
-.editor-photo-card--placeholder {
-  border: 1px solid rgba(75, 65, 48, 0.06);
-}
-
-.editor-photo-card--placeholder::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.3), rgba(255, 255, 255, 0)),
-    radial-gradient(circle at top, rgba(255, 255, 255, 0.48), transparent 60%);
-}
-
-.editor-photo-card__image {
-  width: 100%;
-  height: 100%;
-  display: block;
-  object-fit: cover;
-}
-
-.editor-photo-card__status {
-  position: absolute;
-  left: 8px;
-  right: 8px;
-  bottom: 8px;
-  padding: 4px 8px;
-  border-radius: 999px;
-  background: rgba(18, 16, 12, 0.68);
-  color: white;
-  font-size: 11px;
-  font-weight: 700;
-  text-align: center;
-  backdrop-filter: blur(5px);
-}
-
-.editor-upload-footer {
-  position: sticky;
-  bottom: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  padding: 12px 6px 2px;
-  background: linear-gradient(180deg, rgba(244, 240, 236, 0), rgba(244, 240, 236, 0.96) 28%);
-  flex-shrink: 0;
-}
-
-.editor-upload-footer__meta {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 12px;
-}
-
-.editor-upload-footer__label {
-  font-size: 14px;
-  color: var(--editor-primary);
-}
-
-.editor-upload-footer__count {
-  font-size: 14px;
-  font-weight: 700;
-  color: var(--editor-primary);
-}
-
-.editor-upload-footer__bar {
-  width: 100%;
-  height: 10px;
-  border-radius: 999px;
-  background: rgba(75, 65, 48, 0.12);
-  overflow: hidden;
-}
-
-.editor-upload-footer__bar-fill {
-  display: block;
-  height: 100%;
-  border-radius: inherit;
-  background: var(--editor-primary);
-}
-
-.editor-upload-footer__cancel {
-  width: 100%;
-  height: 48px;
-  border: none;
-  border-radius: 999px;
-  background: rgba(75, 65, 48, 0.14);
-  color: var(--editor-primary);
-  font-size: 16px;
-  font-weight: 700;
-  cursor: pointer;
-}
-
-.editor-upload-area {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  justify-content: space-between;
-  gap: 24px;
-  min-height: 0;
-  padding: 20px;
-  background: var(--editor-primary-08);
-  border: 1px dashed var(--editor-primary-20);
-  position: relative;
-  cursor: pointer;
-  transition: background 0.15s ease, border-color 0.15s ease;
-}
-
-.editor-upload-area:hover {
-  background: var(--editor-primary-10);
-  border-color: rgba(75, 65, 48, 0.28);
-}
-
-.editor-upload-area__body {
-  flex: 1;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 18px;
-  padding: 8px 0 0;
-}
-
-.editor-upload-area__icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 46px;
-  height: 46px;
-  overflow: visible;
-}
-
-.editor-upload-area__icon svg {
-  width: 100%;
-  height: 100%;
-  display: block;
-}
-
-.editor-upload-area__text {
-  text-align: center;
-  font-size: 14px;
-  color: var(--editor-primary);
-  line-height: 1.55;
-  letter-spacing: 0.02em;
-}
-
-.editor-upload-area__text--bold {
-  font-weight: 700;
-}
-
-.editor-upload-area__hint {
-  text-align: center;
-  font-size: 12px;
-  color: var(--editor-primary-50);
-  line-height: 1.55;
-}
-
-/* 写真サムネイルグリッド（アップロード済み写真） */
-.editor-photo-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 8px;
-  padding: 0;
-  overflow-y: auto;
-  flex: 1;
-  min-height: 0;
-}
-
-.editor-photo-thumb {
-  aspect-ratio: 1;
-  border-radius: 4px;
-  overflow: hidden;
-  cursor: grab;
-  position: relative;
-  border: 2px solid transparent;
-  transition: border-color 0.15s ease;
-  appearance: none;
-  background: transparent;
-  width: 100%;
-  padding: 0;
-  display: block;
-}
-
-.editor-photo-thumb:hover {
-  border-color: var(--editor-primary-50);
-}
-
-.editor-photo-thumb:disabled {
-  cursor: default;
-  opacity: 1;
-}
-
-.editor-photo-thumb__img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.editor-photo-thumb__used {
-  position: absolute;
-  top: 4px;
-  right: 4px;
-  font-size: 10px;
-  padding: 1px 5px;
-  border-radius: 4px;
-  background: var(--editor-primary);
-  color: white;
-}
-
-/* QRコードエリア */
-.editor-qr-area {
-  background: var(--editor-primary-10);
-  border-radius: 10px;
-  padding: 18px 16px 20px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 16px;
-}
-
-.editor-qr-area--standalone {
-  flex-shrink: 0;
-}
-
-.editor-qr-area__code {
-  width: 160px;
-  max-width: 100%;
-  aspect-ratio: 1;
-  object-fit: contain;
-  display: block;
-  border-radius: 12px;
-}
-
-.editor-qr-area__text {
-  font-size: 14px;
-  font-weight: 700;
-  color: var(--editor-primary);
-  text-align: center;
-  line-height: 1.45;
 }
 
 /* ──────── フッター ──────── */

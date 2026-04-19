@@ -49,14 +49,47 @@ def _build_preview_url(
     album_id: str,
     media_id: str,
 ) -> str:
+    return _build_asset_url(
+        request,
+        settings,
+        route_name="get_media_preview",
+        album_id=album_id,
+        media_id=media_id,
+    )
+
+
+def _build_thumbnail_url(
+    request: Request,
+    settings: Settings,
+    *,
+    album_id: str,
+    media_id: str,
+) -> str:
+    return _build_asset_url(
+        request,
+        settings,
+        route_name="get_media_thumbnail",
+        album_id=album_id,
+        media_id=media_id,
+    )
+
+
+def _build_asset_url(
+    request: Request,
+    settings: Settings,
+    *,
+    route_name: str,
+    album_id: str,
+    media_id: str,
+) -> str:
     if settings.public_api_base_url:
         path = request.app.url_path_for(
-            "get_media_preview",
+            route_name,
             album_id=album_id,
             media_id=media_id,
         )
         return f"{settings.public_api_base_url.rstrip('/')}{path}"
-    return str(request.url_for("get_media_preview", album_id=album_id, media_id=media_id))
+    return str(request.url_for(route_name, album_id=album_id, media_id=media_id))
 
 
 def _translate_exception(exc: Exception) -> HTTPException:
@@ -113,6 +146,12 @@ async def list_album_media(
                 album_id=current_album_id,
                 media_id=media_id,
             ),
+            thumbnail_url_builder=lambda current_album_id, media_id: _build_thumbnail_url(
+                request,
+                settings,
+                album_id=current_album_id,
+                media_id=media_id,
+            ),
         )
     except Exception as exc:  # pragma: no cover - translated and re-raised
         raise _translate_exception(exc) from exc
@@ -139,6 +178,12 @@ async def complete_media_upload(
                 album_id=current_album_id,
                 media_id=current_media_id,
             ),
+            thumbnail_url_builder=lambda current_album_id, current_media_id: _build_thumbnail_url(
+                request,
+                settings,
+                album_id=current_album_id,
+                media_id=current_media_id,
+            ),
         )
     except Exception as exc:  # pragma: no cover - translated and re-raised
         raise _translate_exception(exc) from exc
@@ -158,6 +203,27 @@ async def get_media_preview(
 ) -> Response:
     try:
         download_url = service.create_preview_download_url(album_id=album_id, media_id=media_id)
+    except Exception as exc:  # pragma: no cover - translated and re-raised
+        raise _translate_exception(exc) from exc
+
+    redirect = RedirectResponse(download_url, status_code=status.HTTP_307_TEMPORARY_REDIRECT)
+    if urlsplit(download_url).scheme in {"http", "https"}:
+        redirect.headers["Cache-Control"] = "private, max-age=300"
+    return redirect
+
+
+@router.get(
+    "/{album_id}/media/{media_id}/thumbnail",
+    include_in_schema=False,
+    name="get_media_thumbnail",
+)
+async def get_media_thumbnail(
+    album_id: str,
+    media_id: str,
+    service: MediaService = Depends(get_media_service),
+) -> Response:
+    try:
+        download_url = service.create_thumbnail_download_url(album_id=album_id, media_id=media_id)
     except Exception as exc:  # pragma: no cover - translated and re-raised
         raise _translate_exception(exc) from exc
 

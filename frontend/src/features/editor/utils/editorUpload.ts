@@ -28,6 +28,7 @@ type MediaSummary = {
   byte_size: number;
   status: "pending" | "processing" | "ready" | "failed" | "deleted";
   preview_url: string | null;
+  thumbnail_url: string | null;
   created_at: string;
 };
 
@@ -260,7 +261,10 @@ async function uploadPhotoViaApi(
 
   let currentMedia = completeResponse.data;
 
-  if (!currentMedia.preview_url && currentMedia.status === "processing") {
+  if (
+    currentMedia.status === "processing" &&
+    (!currentMedia.preview_url || !currentMedia.thumbnail_url)
+  ) {
     const readyMedia = await pollMediaUntilReady(
       albumId,
       currentMedia.id,
@@ -274,8 +278,10 @@ async function uploadPhotoViaApi(
   return {
     source: "api",
     mediaId: currentMedia.id,
-    previewUrl: currentMedia.preview_url ?? undefined,
-    thumbnailUrl: currentMedia.preview_url ?? undefined,
+    previewUrl:
+      currentMedia.preview_url ?? currentMedia.thumbnail_url ?? undefined,
+    thumbnailUrl:
+      currentMedia.thumbnail_url ?? currentMedia.preview_url ?? undefined,
     progress: 100,
     status: mapRemoteStatus(currentMedia.status),
   };
@@ -424,8 +430,8 @@ export async function fetchAlbumPhotos(albumId?: string): Promise<UploadedPhoto[
     .map((item) => ({
       id: item.id,
       mediaId: item.id,
-      thumbnailUrl: item.preview_url ?? "",
-      previewUrl: item.preview_url ?? undefined,
+      thumbnailUrl: item.thumbnail_url ?? item.preview_url ?? "",
+      previewUrl: item.preview_url ?? item.thumbnail_url ?? undefined,
       fileName: item.file_name,
       mimeType: item.mime_type,
       byteSize: item.byte_size,
