@@ -67,17 +67,22 @@ class MediaService:
     def initialize_upload(
         self,
         *,
+        tenant_id: str,
         album_id: str,
         file_name: str,
         mime_type: str,
         byte_size: int,
     ) -> UploadInitResponseData:
         media_id = str(uuid4())
-        object_key = f"albums/{album_id}/media/{media_id}/original/{_sanitize_file_name(file_name)}"
+        object_key = (
+            f"tenants/{tenant_id}/albums/{album_id}/media/{media_id}/original/"
+            f"{_sanitize_file_name(file_name)}"
+        )
         now = datetime.now(timezone.utc)
         record = MediaRecord(
             id=media_id,
             album_id=album_id,
+            tenant_id=tenant_id,
             file_name=file_name,
             mime_type=mime_type,
             byte_size=byte_size,

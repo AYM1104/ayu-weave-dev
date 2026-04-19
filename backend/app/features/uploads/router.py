@@ -80,9 +80,11 @@ async def initialize_media_upload(
     album_id: str,
     payload: UploadInitRequest,
     service: MediaService = Depends(get_media_service),
+    settings: Settings = Depends(get_settings),
 ) -> UploadInitResponse:
     try:
         data = service.initialize_upload(
+            tenant_id=settings.default_tenant_id,
             album_id=album_id,
             file_name=payload.file_name,
             mime_type=payload.mime_type,
