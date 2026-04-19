@@ -16,6 +16,7 @@ def utc_now() -> datetime:
 class MediaRecord:
     id: str
     album_id: str
+    tenant_id: str
     file_name: str
     mime_type: str
     byte_size: int

@@ -31,9 +31,9 @@
   display: inline-flex;
   align-items: center;
   gap: 10px;
-  padding: 12px 22px;
+  padding: 2px 8px;
   border: 1px solid rgba(255, 255, 255, 0.32);
-  border-radius: 28px;
+  border-radius: 4px;
   background: rgba(75, 65, 48, 0.18);
   color: var(--editor-primary);
   box-shadow:
@@ -57,7 +57,7 @@
 
 .menuButtonLabel {
   font-family: var(--editor-font-display);
-  font-size: 24px;
+  font-size: 18px;
   line-height: 1;
   letter-spacing: -0.03em;
 }

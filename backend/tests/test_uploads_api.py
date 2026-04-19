@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from fastapi.testclient import TestClient
 
+from app.core.config import DEFAULT_TENANT_ID
 from app.features.uploads.repository import InMemoryMediaRepository
 from app.features.uploads.router import get_media_repository, get_storage
 from app.main import create_app
@@ -50,7 +51,9 @@ def test_initialize_upload_returns_signed_target() -> None:
     assert response.status_code == 201
     payload = response.json()["data"]
     assert payload["id"]
-    assert payload["upload_url"].startswith("https://uploads.example.test/albums/album-123/media/")
+    assert payload["upload_url"].startswith(
+        f"https://uploads.example.test/tenants/{DEFAULT_TENANT_ID}/albums/album-123/media/"
+    )
     assert payload["upload_headers"] == {"content-type": "image/jpeg"}
 
 
@@ -105,5 +108,5 @@ def test_preview_endpoint_redirects_to_signed_download_url() -> None:
 
     assert preview_response.status_code == 307
     assert preview_response.headers["location"].startswith(
-        "https://downloads.example.test/albums/album-123/media/",
+        f"https://downloads.example.test/tenants/{DEFAULT_TENANT_ID}/albums/album-123/media/",
     )
