@@ -46,6 +46,23 @@ class S3UploadStorage:
             HttpMethod="GET",
         )
 
+    def download_object_bytes(self, *, key: str) -> bytes:
+        client = self._get_client()
+        response = client.get_object(Bucket=self._settings.s3_bucket, Key=key)
+        body = response.get("Body")
+        if body is None:
+            raise StorageObjectNotFoundError(f"S3 object body is missing: {key}")
+        return body.read()
+
+    def upload_object_bytes(self, *, key: str, content: bytes, content_type: str) -> None:
+        client = self._get_client()
+        client.put_object(
+            Bucket=self._settings.s3_bucket,
+            Key=key,
+            Body=content,
+            ContentType=content_type,
+        )
+
     def assert_object_exists(self, *, key: str) -> None:
         client = self._get_client()
         try:

@@ -32,6 +32,7 @@ class MediaSummary(BaseModel):
     byte_size: int
     status: MediaStatus
     preview_url: str | None
+    thumbnail_url: str | None
     created_at: datetime
 
 

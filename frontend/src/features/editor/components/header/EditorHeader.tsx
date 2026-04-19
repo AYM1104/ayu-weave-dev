@@ -6,15 +6,11 @@
  * menu ボタンからグローバルメニューを開閉する。
  */
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useId, useState } from "react";
-import CloseIcon from "@/components/icons/CloseIcon";
-import EditIcon from "@/components/icons/EditIcon";
-import ExternalLinkIcon from "@/components/icons/ExternalLinkIcon";
-import AddIcon from "@/components/icons/AddIcon";
-import MenuIcon from "@/components/icons/MenuIcon";
 import styles from "./EditorHeader.module.css";
+import EditorHeaderMenuButton from "./menu/EditorHeaderMenuButton";
+import EditorHeaderMenuPanel from "./menu/EditorHeaderMenuPanel";
 
 export default function EditorHeader() {
   const [isOpen, setIsOpen] = useState(false);
@@ -60,75 +56,18 @@ export default function EditorHeader() {
       ) : null}
 
       <div className={styles.anchor}>
-        <button
-          type="button"
-          className={styles.menuButton}
-          aria-expanded={isOpen}
-          aria-controls={menuId}
-          aria-haspopup="dialog"
-          onClick={() => setIsOpen((open) => !open)}
-        >
-          <span className={styles.menuButtonLabel}>menu</span>
-          <span className={styles.menuButtonIcon} aria-hidden="true">
-            {isOpen ? <CloseIcon /> : <MenuIcon />}
-          </span>
-        </button>
+        <EditorHeaderMenuButton
+          isOpen={isOpen}
+          menuId={menuId}
+          onToggle={() => setIsOpen((open) => !open)}
+        />
 
         {isOpen ? (
-          <div id={menuId} className={styles.panel} role="dialog" aria-modal="true">
-            <nav aria-label="エディターメニュー">
-              <ul className={styles.menuList}>
-                <li>
-                  <Link
-                    href="/album/upload"
-                    className={styles.menuItem}
-                    onClick={closeMenu}
-                  >
-                    <span className={styles.menuItemLabel}>新規アルバム</span>
-                    <span className={styles.menuItemIcon} aria-hidden="true">
-                      <AddIcon />
-                    </span>
-                  </Link>
-                </li>
-
-                <li>
-                  <Link
-                    href="/dashboard"
-                    className={styles.menuItem}
-                    onClick={closeMenu}
-                  >
-                    <span className={styles.menuItemLabel}>下書き</span>
-                    <span className={styles.menuItemIcon} aria-hidden="true">
-                      <EditIcon />
-                    </span>
-                  </Link>
-                </li>
-
-                <li>
-                  <Link
-                    href="/account/orders"
-                    className={styles.menuItem}
-                    onClick={closeMenu}
-                  >
-                    <span className={styles.menuItemLabel}>注文履歴</span>
-                    <span className={styles.menuItemIcon} aria-hidden="true">
-                      <ExternalLinkIcon />
-                    </span>
-                  </Link>
-                </li>
-
-                <li className={styles.menuItemWithDivider}>
-                  <button
-                    type="button"
-                    className={styles.menuItem}
-                    onClick={handleLogout}
-                  >
-                    <span className={styles.menuItemLabel}>ログアウト</span>
-                  </button>
-                </li>
-              </ul>
-            </nav>
-          </div>
+          <EditorHeaderMenuPanel
+            menuId={menuId}
+            onClose={closeMenu}
+            onLogout={handleLogout}
+          />
         ) : null}
       </div>
     </header>

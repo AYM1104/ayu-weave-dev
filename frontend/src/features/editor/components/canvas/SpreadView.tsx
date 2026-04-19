@@ -24,8 +24,6 @@ interface RenderableSlot extends PhotoSlot {
 
 function getPhotoStatusLabel(photo: UploadedPhoto) {
   switch (photo.status) {
-    case "uploading":
-      return "アップロード中";
     case "processing":
       return "画像処理中";
     case "error":
@@ -33,6 +31,14 @@ function getPhotoStatusLabel(photo: UploadedPhoto) {
     default:
       return "";
   }
+}
+
+function getSlotImageUrl(photo: UploadedPhoto) {
+  if (photo.status === "ready") {
+    return photo.previewUrl ?? photo.thumbnailUrl ?? "";
+  }
+
+  return photo.thumbnailUrl ?? photo.previewUrl ?? "";
 }
 
 /** ページ1枚分の描画 */
@@ -69,6 +75,8 @@ function PageView({
   onSlotSelect: (pageIndex: number, slotId: string) => void;
   getPhotoById: (photoId: string | null) => UploadedPhoto | undefined;
 }) {
+  const [loadedImageUrls, setLoadedImageUrls] = useState<Record<string, boolean>>({});
+
   if (!hasPage) {
     return (
       <div
@@ -118,6 +126,12 @@ function PageView({
     >
       {slots.map((slot) => {
         const photo = getPhotoById(slot.photoId);
+        const imageUrl = photo ? getSlotImageUrl(photo) : "";
+        const isImageLoaded = imageUrl ? Boolean(loadedImageUrls[imageUrl]) : false;
+        const showSkeleton =
+          !!photo &&
+          photo.status !== "error" &&
+          (photo.status !== "ready" || (!!imageUrl && !isImageLoaded));
         const isSlotSelected =
           selectedSlotId === slot.id &&
           selectedSlotPageIndex === slot.sourcePageIndex;
@@ -144,13 +158,30 @@ function PageView({
             onClick={(event) => handleSlotClick(event, slot)}
             onKeyDown={(event) => handleSlotKeyDown(event, slot)}
           >
-            {photo?.thumbnailUrl ? (
+            {photo ? (
               <>
-                <img
-                  className="editor-slot__image"
-                  src={photo.thumbnailUrl}
-                  alt={photo.fileName}
-                />
+                {imageUrl ? (
+                  <img
+                    className={`editor-slot__image ${!isImageLoaded ? "editor-slot__image--hidden" : ""}`}
+                    src={imageUrl}
+                    alt={photo.fileName}
+                    onLoad={() =>
+                      setLoadedImageUrls((current) => {
+                        if (current[imageUrl]) {
+                          return current;
+                        }
+
+                        return {
+                          ...current,
+                          [imageUrl]: true,
+                        };
+                      })
+                    }
+                  />
+                ) : null}
+                {showSkeleton ? (
+                  <span className="editor-slot__skeleton" aria-hidden="true" />
+                ) : null}
                 {photo.status !== "ready" ? (
                   <span className="editor-slot__status">
                     {getPhotoStatusLabel(photo)}

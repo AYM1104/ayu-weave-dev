@@ -1,3 +1,6 @@
+/* =========================================================================
+ *  ヘッダー全体・レイアウト基礎
+ * ========================================================================= */
 .root {
   display: flex;
   justify-content: center;
@@ -25,186 +28,12 @@
   cursor: default;
 }
 
-.menuButton {
-  position: relative;
-  z-index: 42;
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-  padding: 2px 8px;
-  border: 1px solid rgba(255, 255, 255, 0.32);
-  border-radius: 4px;
-  background: rgba(75, 65, 48, 0.18);
-  color: var(--editor-primary);
-  box-shadow:
-    0 12px 28px rgba(64, 12, 4, 0.08),
-    inset 0 1px 0 rgba(255, 255, 255, 0.16);
-  -webkit-backdrop-filter: blur(12px);
-  backdrop-filter: blur(12px);
-  cursor: pointer;
-  transition: background 0.18s ease, transform 0.18s ease;
-}
-
-.menuButton:hover {
-  background: rgba(75, 65, 48, 0.24);
-  transform: translateY(-1px);
-}
-
-.menuButton:focus-visible {
-  outline: 2px solid var(--editor-primary-50);
-  outline-offset: 4px;
-}
-
-.menuButtonLabel {
-  font-family: var(--editor-font-display);
-  font-size: 18px;
-  line-height: 1;
-  letter-spacing: -0.03em;
-}
-
-.menuButtonIcon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 20px;
-  height: 20px;
-  flex-shrink: 0;
-}
-
-.menuButtonIcon :global(svg) {
-  width: 100%;
-  height: 100%;
-  color: currentColor;
-}
-
-.panel {
-  position: absolute;
-  top: calc(100% + 28px);
-  left: 50%;
-  z-index: 41;
-  width: min(264px, calc(100vw - 24px));
-  max-height: calc(100vh - 96px);
-  overflow-y: auto;
-  transform: translateX(-50%);
-  isolation: isolate;
-  border-radius: 24px;
-  border: 1px solid rgba(255, 255, 255, 0.4);
-  background: transparent;
-  box-shadow:
-    0 12px 30px rgba(64, 12, 4, 0.18),
-    0 2px 12px rgba(64, 12, 4, 0.06),
-    inset 0 1px 0 rgba(255, 255, 255, 0.26);
-  -webkit-backdrop-filter: blur(10px) saturate(1.08);
-  backdrop-filter: blur(10px) saturate(1.08);
-}
-
-.panel::before {
-  content: none;
-  position: absolute;
-  inset: 0;
-  z-index: 0;
-  background: linear-gradient(
-    180deg,
-    rgba(255, 255, 255, 0.2) 0%,
-    rgba(255, 255, 255, 0.08) 40%,
-    rgba(255, 255, 255, 0.14) 100%
-  );
-  pointer-events: none;
-}
-
-.menuList {
-  position: relative;
-  z-index: 1;
-  list-style: none;
-  margin: 0;
-  padding: 0;
-}
-
-.menuItemWithDivider {
-  position: relative;
-}
-
-.menuItemWithDivider::before {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  z-index: 2;
-  height: 1px;
-  background: rgba(18, 16, 12, 0.08);
-}
-
-.menuItem {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  width: 100%;
-  min-height: 56px;
-  padding: 14px 34px;
-  border: none;
-  background: transparent;
-  color: var(--editor-text);
-  text-align: left;
-  text-decoration: none;
-  cursor: pointer;
-  transition: background 0.18s ease;
-}
-
-.menuItem:hover {
-  background: rgba(255, 255, 255, 0.12);
-}
-
-.menuItem:focus-visible {
-  outline: 2px solid var(--editor-primary-50);
-  outline-offset: -2px;
-}
-
-.menuItemLabel {
-  font-size: 22px;
-  font-weight: 400;
-  letter-spacing: -0.05em;
-  line-height: 1.2;
-}
-
-.menuItemIcon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
-  color: var(--editor-text);
-  flex-shrink: 0;
-  margin-left: 20px;
-}
-
-.menuItemIcon :global(svg) {
-  width: 100%;
-  height: 100%;
-}
-
-.menuItemWithDivider .menuItem {
-  min-height: 68px;
-  background: transparent;
-  -webkit-backdrop-filter: blur(16px);
-  backdrop-filter: blur(16px);
-}
-
-.menuItemWithDivider .menuItem:hover {
-  background: rgba(255, 255, 255, 0.12);
-}
-
+/* =========================================================================
+ *  レスポンシブ対応（タブレット・スマホ画面向けのサイズ調整）
+ * ========================================================================= */
 @media (max-width: 900px) {
   .root {
     padding: 10px 12px 6px;
-  }
-
-  .menuButton {
-    padding: 11px 20px;
-  }
-
-  .panel {
-    width: min(264px, calc(100vw - 24px));
   }
 }
 
@@ -212,45 +41,5 @@
   .root {
     min-height: 0;
     padding-top: 10px;
-  }
-
-  .menuButton {
-    gap: 8px;
-    padding: 10px 18px;
-    border-radius: 24px;
-  }
-
-  .menuButtonLabel {
-    font-size: 18px;
-  }
-
-  .menuButtonIcon {
-    width: 20px;
-    height: 20px;
-  }
-
-  .panel {
-    top: calc(100% + 20px);
-    width: calc(100vw - 24px);
-    max-height: calc(100vh - 72px);
-    border-radius: 20px;
-  }
-
-  .menuItem {
-    padding: 14px 24px;
-  }
-
-  .menuItemLabel {
-    font-size: 18px;
-  }
-
-  .menuItemIcon {
-    width: 24px;
-    height: 24px;
-    margin-left: 16px;
-  }
-
-  .menuItemWithDivider .menuItem {
-    min-height: 60px;
   }
 }
