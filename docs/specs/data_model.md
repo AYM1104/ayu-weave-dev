@@ -8,10 +8,44 @@
 | カラム名 | データ型 | 制約 | 意味 | 用途 |
 | --- | --- | --- | --- | --- |
 | id | UUID | PK, NOT NULL | アプリ内でのユーザー固有ID | 内部主キー。ほかのテーブルから `user_id` として参照する |
-| firebase_uid | VARCHAR(255) | UNIQUE, NOT NULL | Firebase上のユーザーID | Firebase上のユーザーとアプリ内ユーザーを紐づけるために使う |
+| auth_provider | VARCHAR(50) | NOT NULL | どの認証基盤でログインしたか | MVP では `cognito_google` 固定。将来の IdP 追加に備える |
+| auth_subject | VARCHAR(255) | UNIQUE, NOT NULL | 認証基盤上のユーザー識別子 | Cognito access token の `sub` を保存し、アプリ内 user と紐づける |
 | last_login_at | TIMESTAMP WITH TIME ZONE | NULL | 最後にログインした日時 | アクティブユーザーの把握や運用上の確認に使う |
 | created_at | TIMESTAMP WITH TIME ZONE | NOT NULL | ユーザー作成日時 | いつアカウントが作られたかを記録する |
 | updated_at | TIMESTAMP WITH TIME ZONE | NOT NULL | ユーザー情報の最終更新日時 | レコード更新時刻の管理に使う |
+
+## user_policy_consents（規約同意の履歴を管理する）
+
+- ログイン画面での利用規約・プライバシーポリシー同意を保存する
+- 文言表示だけで終わらせず、どの版にいつ同意したかを記録する
+
+| カラム名 | データ型 | 制約 | 意味 | 用途 |
+| --- | --- | --- | --- | --- |
+| id | UUID | PK, NOT NULL | 同意履歴の固有ID | 内部主キー |
+| user_id | UUID | FK, NOT NULL | 対象 user | 誰の同意かを示す |
+| policy_type | VARCHAR(50) | NOT NULL | どのポリシーか | `terms` / `privacy` を区別する |
+| policy_version | VARCHAR(50) | NOT NULL | 同意した版 | 規約改定時の差分管理に使う |
+| consented_at | TIMESTAMP WITH TIME ZONE | NOT NULL | 同意日時 | いつ同意したかの証跡に使う |
+| created_at | TIMESTAMP WITH TIME ZONE | NOT NULL | レコード作成日時 | 監査用途に使う |
+
+## auth_sessions（サーバー側 session を保持する）
+
+- Next.js BFF が発行するログイン session の正本を保持する
+- ブラウザには生の Cognito token を持たせず、cookie に入る不透明な session key の照合先として使う
+
+| カラム名 | データ型 | 制約 | 意味 | 用途 |
+| --- | --- | --- | --- | --- |
+| id | UUID | PK, NOT NULL | session の固有ID | 内部主キー |
+| user_id | UUID | FK, NOT NULL | 対象 user | どの user の session かを示す |
+| session_key_hash | VARCHAR(255) | UNIQUE, NOT NULL | cookie 内 session key のハッシュ | 生の session key を DB に保存しないために使う |
+| refresh_token_ciphertext | TEXT | NOT NULL | 暗号化済み refresh token | access token の再取得に使う |
+| access_token_ciphertext | TEXT | NULL | 暗号化済み access token | 直近 token の再利用キャッシュに使う |
+| access_token_expires_at | TIMESTAMP WITH TIME ZONE | NULL | access token 有効期限 | refresh 要否の判定に使う |
+| refresh_token_expires_at | TIMESTAMP WITH TIME ZONE | NOT NULL | refresh token 有効期限 | 再ログイン要否の判定に使う |
+| last_seen_at | TIMESTAMP WITH TIME ZONE | NOT NULL | 最終利用日時 | 非アクティブ session の整理に使う |
+| revoked_at | TIMESTAMP WITH TIME ZONE | NULL | 失効日時 | 明示 logout や強制失効の記録に使う |
+| created_at | TIMESTAMP WITH TIME ZONE | NOT NULL | 作成日時 | 監査用途に使う |
+| updated_at | TIMESTAMP WITH TIME ZONE | NOT NULL | 更新日時 | token 更新や利用時刻の管理に使う |
 
 ## tenants（所属するチームを表す）
 
@@ -120,8 +154,8 @@
 | book_id | UUID | どの album の画像か | albums API のスコープと一致させる。MVPでは 1 media = 1 album |
 | tenant_id | UUID | どの tenant の画像か | 作業領域との紐付け |
 | uploaded_by_user_id | UUID nullable | 画像をアップロードした user | 誰が追加したかの記録 |
-| original_gcs_key | VARCHAR(512) | オリジナル画像の保存先キー | GCS 上の元ファイルを参照する |
-| proxy_gcs_key | VARCHAR(512) nullable | 軽量版画像の保存先キー | プレビューや配信用の画像を参照する |
+| original_s3_key | VARCHAR(512) | オリジナル画像の保存先キー | S3 上の元ファイルを参照する |
+| proxy_s3_key | VARCHAR(512) nullable | 軽量版画像の保存先キー | プレビューや配信用の画像を参照する |
 | file_name | VARCHAR(255) | 元ファイル名 | 一覧表示やサポート確認に使う |
 | mime_type | VARCHAR(128) | 画像の MIME type | jpeg/png などの形式判定に使う |
 | byte_size | BIGINT | ファイルサイズ | 容量チェックや制限管理に使う |
@@ -142,8 +176,8 @@
 | book_id | UUID | どの本を render したか | books に紐づく |
 | revision_id | UUID nullable | どの revision を元に render したか | 出力対象の固定版を示す |
 | status | ENUM(RenderJobStatus) | render 処理の状態 | queued, processing, completed, failed などを表す |
-| body_pdf_gcs_key | VARCHAR(512) nullable | 本文PDFの保存先キー | 生成済みPDFの参照先 |
-| cover_pdf_gcs_key | VARCHAR(512) nullable | 表紙PDFの保存先キー | 生成済み表紙PDFの参照先 |
+| body_pdf_s3_key | VARCHAR(512) nullable | 本文PDFの保存先キー | 生成済みPDFの参照先 |
+| cover_pdf_s3_key | VARCHAR(512) nullable | 表紙PDFの保存先キー | 生成済み表紙PDFの参照先 |
 | error_message | TEXT nullable | エラー内容 | 失敗時の調査や表示に使う |
 | created_by_user_id | UUID nullable | render を開始した user | 誰が実行したかの記録 |
 | created_at | TIMESTAMP WITH TIME ZONE | ジョブ作成日時 | render 開始要求の時刻 |
@@ -314,7 +348,7 @@ weave における個人情報の取り扱い方針を定義する。「**個人
 | --- | --- | --- |
 | **写真（media_assets / AWS S3）** | AWS S3（一時的） | サービス提供のために一時的に預かる。保持期限は別途決定（TODO） |
 | **配送先住所** | 自社 DB に**保存しない** | Stripe API から都度取得する。Phase 2-2 のベンダー発注時に Stripe API を呼び出す |
-| **ユーザー認証情報（名前・メール等）** | Firebase Authentication | Firebase Auth に委任。自社 DB には `firebase_uid` のみ保持 |
+| **ユーザー認証情報（ログインセッション・ソーシャルログイン）** | Amazon Cognito + 自社 DB (`auth_sessions`) | 認証処理は Cognito に委任しつつ、自社 DB には `auth_provider`, `auth_subject`, 規約同意ログ、暗号化した server-side session 情報のみ保持 |
 | **カード情報** | 自社では**一切保持しない** | Stripe Checkout により処理。PCI DSS 対応済み（SAQ A スコープ） |
 
 ## 配送先住所について

@@ -30,7 +30,7 @@ weave-dev/
 │   ├── alembic/                   ... DBマイグレーション
 │   └── tests/                     ... テストコード
 │
-├── infra/                         ... インフラ設定（GCP 等）
+├── infra/                         ... インフラ設定（AWS 等）
 ├── docs/                          ... 設計書・仕様書
 │   ├── specs/                     ... 技術仕様
 │   └── plans/                     ... 計画書
