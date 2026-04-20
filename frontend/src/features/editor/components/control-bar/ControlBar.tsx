@@ -7,8 +7,8 @@
  */
 
 import { useEditorStore } from "../../store/editorStore";
-import UndoIcon from "@/components/icons/UndoIcon";
-import RedoIcon from "@/components/icons/RedoIcon";
+import UndoIcon from "@/shared/icons/UndoIcon";
+import RedoIcon from "@/shared/icons/RedoIcon";
 import EditorButton from "./EditorButton";
 
 export default function ControlBar() {

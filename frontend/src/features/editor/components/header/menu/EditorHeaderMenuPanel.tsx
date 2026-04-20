@@ -1,7 +1,7 @@
 import Link from "next/link";
-import AddIcon from "@/components/icons/AddIcon";
-import EditIcon from "@/components/icons/EditIcon";
-import ExternalLinkIcon from "@/components/icons/ExternalLinkIcon";
+import AddIcon from "@/shared/icons/AddIcon";
+import EditIcon from "@/shared/icons/EditIcon";
+import ExternalLinkIcon from "@/shared/icons/ExternalLinkIcon";
 import styles from "./EditorHeaderMenuPanel.module.css";
 
 type EditorHeaderMenuPanelProps = {
