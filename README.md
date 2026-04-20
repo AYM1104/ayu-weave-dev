@@ -67,7 +67,16 @@
 | デプロイ | AWS EC2 (Next.js) / AWS ECS or App Runner (FastAPI) / GitHub Actions |
 | テスト | Vitest / Playwright |
 
+
 詳細: [docs/specs/tech-stack.md](docs/specs/tech-stack.md)
+
+> 補足: 一部仕様書に旧前提語（Firebase/GCS）が残る箇所は、移行対象または旧命名として扱い、採用確定を意味しません。
+
+## クラウド方針
+
+- クラウド基盤は `docs/adr/0001-cloud-platform-aws.md` を正本として **AWS に統一**します。
+- ただし、認証 / 実行基盤 / DB / IaC などの個別サービス選定は **未決定** で、後続 ADR で確定します。
+- したがって、README 上でも AWS 個別サービスは確定事項として記載しません。
 
 ## リポジトリ構成
 
