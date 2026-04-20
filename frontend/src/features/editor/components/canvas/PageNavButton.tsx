@@ -6,8 +6,8 @@
  * キャンバスエリアの前後ページ送りに使う共通ボタン。
  */
 
-import ChevronLeftIcon from "@/components/icons/ChevronLeftIcon";
-import ChevronRightIcon from "@/components/icons/ChevronRightIcon";
+import ChevronLeftIcon from "@/shared/icons/ChevronLeftIcon";
+import ChevronRightIcon from "@/shared/icons/ChevronRightIcon";
 
 interface PageNavButtonProps {
   direction: "prev" | "next";

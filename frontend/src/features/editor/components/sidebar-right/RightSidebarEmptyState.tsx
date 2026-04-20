@@ -4,7 +4,7 @@ import type {
   DragEventHandler,
   KeyboardEventHandler,
 } from "react";
-import PlusIcon from "@/components/icons/PlusIcon";
+import PlusIcon from "@/shared/icons/PlusIcon";
 import styles from "./RightSidebar.module.css";
 
 interface RightSidebarEmptyStateProps {

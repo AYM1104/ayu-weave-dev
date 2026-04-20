@@ -8,7 +8,7 @@
  */
 
 import { useEditorStore } from "../../store/editorStore";
-import GridIcon from "@/components/icons/GridIcon";
+import GridIcon from "@/shared/icons/GridIcon";
 import SpreadPagination from "./spread-pagination/SpreadPagination";
 import ZoomSlider from "./ZoomSlider";
 

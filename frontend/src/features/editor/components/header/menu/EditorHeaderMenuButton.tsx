@@ -1,5 +1,5 @@
-import CloseIcon from "@/components/icons/CloseIcon";   // バツアイコン
-import MenuIcon from "@/components/icons/MenuIcon";   // ハンバーガーアイコン
+import CloseIcon from "@/shared/icons/CloseIcon";   // バツアイコン
+import MenuIcon from "@/shared/icons/MenuIcon";   // ハンバーガーアイコン
 import styles from "./EditorHeaderMenuButton.module.css";
 
 // propsの型定義
