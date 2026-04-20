@@ -8,12 +8,13 @@ import { create } from "zustand";
 import { immer } from "zustand/middleware/immer";
 import type {
   AlbumPage,
+  CoverDesign,
   UploadedPhoto,
   ViewMode,
 } from "../types/editor";
 import type { LayoutTemplate } from "@/lib/layouts/types";
 import { ALL_LAYOUTS } from "@/lib/layouts/registry";
-import { mockPages, mockPhotos } from "../data/mockData";
+import { mockCoverDesign, mockPages, mockPhotos } from "../data/mockData";
 import {
   resolveSelectedPageIndex,
   type EditablePageSide,
@@ -24,6 +25,7 @@ interface EditorState {
   pages: AlbumPage[];
   layouts: LayoutTemplate[];
   photos: UploadedPhoto[];
+  coverDesign: CoverDesign;
 
   /* ─── UI 状態 ─── */
   currentSpreadIndex: number;
@@ -48,6 +50,7 @@ interface EditorState {
   patchPhoto: (photoId: string, patch: Partial<UploadedPhoto>) => void;
   removePhoto: (photoId: string) => void;
   placePhotoInSelectedSlot: (photoId: string) => void;
+  patchCoverDesign: (patch: Partial<CoverDesign>) => void;
 }
 
 /** 見開き単位でのページ数 */
@@ -149,6 +152,7 @@ export const useEditorStore = create<EditorState>()(
     pages: mockPages,
     layouts: ALL_LAYOUTS,
     photos: mockPhotos,
+    coverDesign: mockCoverDesign,
 
     currentSpreadIndex: 1, // 最初の見開き（表紙の次）
     selectedPageSide: "right",
@@ -325,6 +329,14 @@ export const useEditorStore = create<EditorState>()(
         state.selectedSlotPageIndex = targetPageIndex;
         state.selectedSlotId = targetSlot.id;
         recomputePhotoUsage(state);
+      }),
+
+    patchCoverDesign: (patch) =>
+      set((state) => {
+        state.coverDesign = {
+          ...state.coverDesign,
+          ...patch,
+        };
       }),
   })),
 );

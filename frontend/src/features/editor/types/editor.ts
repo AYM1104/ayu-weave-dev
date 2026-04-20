@@ -9,6 +9,24 @@ import type { PhotoSlot } from "@/lib/layouts/types";
 
 export type { PhotoSlot, LayoutTemplate, LayoutCategory } from "@/lib/layouts/types";
 
+export type CoverThemeId = "ivory" | "blush" | "rose" | "mist" | "sage";
+
+export type CoverMaterialId = "leather" | "matte" | "rough" | "soft-matte";
+
+export type CoverPageOptionId = "standard" | "volume";
+
+export interface CoverDesign {
+  themeId: CoverThemeId;
+  materialId: CoverMaterialId;
+  pageOptionId: CoverPageOptionId;
+  title: string;
+  subtitle: string;
+  spineLabel: string;
+  footerLeft: string;
+  footerCenter: string;
+  footerRight: string;
+}
+
 /** アルバムのページ */
 export interface AlbumPage {
   id: string;

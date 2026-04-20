@@ -4,7 +4,7 @@
  * デモ画面用のダミーデータ。バックエンド連携前のUI検証に使用する。
  * レイアウトテンプレートは src/lib/layouts/ で管理。
  */
-import type { AlbumPage, UploadedPhoto } from "../types/editor";
+import type { AlbumPage, CoverDesign, UploadedPhoto } from "../types/editor";
 import { ALL_LAYOUTS } from "@/lib/layouts/registry";
 
 /* ─── モックページデータ（15ページ） ─── */
@@ -67,3 +67,15 @@ export const mockPhotos: UploadedPhoto[] = [];
 //   fileName: `wedding_${String(i + 1).padStart(3, "0")}.jpg`,
 //   used: false,
 // }));
+
+export const mockCoverDesign: CoverDesign = {
+  themeId: "ivory",
+  materialId: "leather",
+  pageOptionId: "standard",
+  title: "With love,\nKeeping",
+  subtitle: "the Memory\nBy your side",
+  spineLabel: "Wedding Album 2026",
+  footerLeft: "Lifetime",
+  footerCenter: "Collection",
+  footerRight: "memories",
+};

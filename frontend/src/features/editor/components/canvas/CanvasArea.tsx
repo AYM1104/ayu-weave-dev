@@ -8,6 +8,7 @@
  */
 
 import { useEditorStore } from "../../store/editorStore";
+import CoverCanvas from "./CoverCanvas";
 import SpreadView from "./SpreadView";
 import PageNavButton from "./PageNavButton";
 
@@ -21,13 +22,16 @@ export default function CanvasArea() {
   const maxSpread = Math.ceil((pages.length - 1) / 2);
   const isFirst = currentSpreadIndex <= 0;
   const isLast = currentSpreadIndex >= maxSpread;
+  const isCover = currentSpreadIndex === 0;
 
   return (
     <div className="editor-canvas-area">
       {/* キャンバス（見開き + 前後ボタン） */}
-      <div className="editor-canvas-wrapper">
+      <div
+        className={`editor-canvas-wrapper ${isCover ? "editor-canvas-wrapper--cover" : ""}`}
+      >
         <PageNavButton direction="prev" onClick={prevSpread} disabled={isFirst} />
-        <SpreadView zoomLevel={zoomLevel} />
+        {isCover ? <CoverCanvas zoomLevel={zoomLevel} /> : <SpreadView zoomLevel={zoomLevel} />}
         <PageNavButton direction="next" onClick={nextSpread} disabled={isLast} />
       </div>
     </div>
