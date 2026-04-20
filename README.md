@@ -60,11 +60,11 @@
 | スタイリング | Tailwind CSS v4 |
 | キャンバス | react-konva (Konva) |
 | 状態管理 | Zustand + Immer |
-| 認証 | Firebase (Google OAuth) |
+| 認証 | Amazon Cognito User Pool + Next.js BFF (Google federation) |
 | バックエンド | FastAPI (Python 3.13) / Uvicorn |
 | DB / ORM | PostgreSQL / SQLAlchemy (asyncio) / Alembic |
 | ストレージ | Amazon S3 |
-| デプロイ | Cloud Run / GitHub Actions |
+| デプロイ | AWS EC2 (Next.js) / AWS ECS or App Runner (FastAPI) / GitHub Actions |
 | テスト | Vitest / Playwright |
 
 詳細: [docs/specs/tech-stack.md](docs/specs/tech-stack.md)
@@ -88,9 +88,8 @@ weave-dev/
 │   │   └── features/  ... 機能別モジュール（auth, editor, payment 等）
 │   ├── alembic/       ... DBマイグレーション
 │   └── tests/
-├── infra/             ... インフラ設定（GCP）
+├── infra/             ... インフラ設定（AWS）
 ├── docs/              ... 設計書・仕様書
-└── data_model/        ... データモデル設計
 ```
 
 詳細: [docs/specs/directory-structure.md](docs/specs/directory-structure.md)
@@ -99,6 +98,6 @@ weave-dev/
 
 - [MVP API 設計](docs/specs/mvp-api.md)
 - [ユーザーフロー](docs/specs/user-flow.md)
-- [データモデル](data_model/data_model.md)
+- [データモデル](docs/specs/data_model.md)
 
-backend 実装に着手する際は、`docs/specs/mvp-api.md` と `data_model/data_model.md` を優先して参照してください。
+backend 実装に着手する際は、`docs/specs/mvp-api.md` と `docs/specs/data_model.md` を優先して参照してください。

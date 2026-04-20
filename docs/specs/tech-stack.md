@@ -20,7 +20,8 @@ Weave はフォトアルバムエディタのWebアプリケーションです�
 | キャンバス描画 | react-konva (Konva) | 写真配置・編集に必要な高性能 2D キャンバス |
 | 状態管理 | Zustand + Immer | 軽量かつ直感的。Immer で不変性を保ちながらスムーズに状態更新 |
 | API通信 | Axios | インターセプターやエラーハンドリングが充実 |
-| 認証 (クライアント) | Firebase (Google OAuth) | Google 認証を最小コストで実装可能 |
+| 認証 (BFF / セッション) | Next.js Route Handlers + `HttpOnly` secure cookie | Cognito の code exchange と session 管理を server-side に寄せ、ブラウザへ token を露出しない |
+| 認証基盤 (IdP) | Amazon Cognito User Pool (Google federation + Authorization Code Flow + PKCE) | AWS に認証基盤を統一しつつ、Google ログインを安全に実現できる |
 | ローカルストレージ | idb (IndexedDB) | 画像データのオフラインキャッシュに利用 |
 | ユニットテスト | Vitest + React Testing Library | Vite ベースで高速。React コンポーネントのテストに最適 |
 | E2Eテスト | Playwright | クロスブラウザ対応の信頼性の高い E2E テスト |
@@ -34,7 +35,7 @@ Weave はフォトアルバムエディタのWebアプリケーションです�
 | ORM | SQLAlchemy (asyncio) | Python の標準的な ORM。非同期対応で高パフォーマンス |
 | DB ドライバ | asyncpg | PostgreSQL 向け高速な非同期ドライバ |
 | マイグレーション | Alembic | SQLAlchemy と統合されたDBマイグレーション管理 |
-| 認証 (サーバー) | firebase-admin | Firebase トークンのサーバーサイド検証 |
+| 認証 (サーバー) | Cognito JWT 検証 (JWKS + PyJWT 想定) | Cognito access token を FastAPI で検証し、`sub` ベースでユーザーを特定できる |
 | クラウドストレージ | Amazon S3 | 画像ファイル等のリモート保存 |
 | 画像処理 | Pillow | 画像のリサイズ・変換処理 |
 | PDF生成 | ReportLab | 印刷用データの書き出し |
@@ -45,22 +46,22 @@ Weave はフォトアルバムエディタのWebアプリケーションです�
 | カテゴリ | 技術 | 採用理由 |
 |----------|------|----------|
 | デプロイ先 (Backend) | AWS ECS (Fargate) または App Runner (ap-northeast-1) | コンテナベースでスケーラブルな環境。日本リージョン対応 |
-| デプロイ先 (Frontend) | AWS S3 + CloudFront | Next.jsの静的エクスポート (`output: 'export'`) による低コストかつ高速な配信 |
+| デプロイ先 (Frontend) | AWS EC2 + Nginx + Next.js Node server | Route Handlers, secure cookie, server-side auth を使う前提に合う |
 | CI/CD | GitHub Actions | GitHub との統合が容易。PR ベースの自動テスト・デプロイ |
 | DB | PostgreSQL (Amazon RDS / Aurora 想定) | 信頼性の高いリレーショナルDB |
 
 ---
 
-## フロントエンド実装上のアーキテクチャ制約
+## フロントエンド実装上のアーキテクチャ方針
 
-フロントエンドは静的ホスティング (S3 + CloudFront) に配置されるため、Next.js の **Static Export (`output: 'export'`)** でビルドされます。これにより以下の実装制約があります。
+フロントエンドは EC2 上で `Next.js App Router` を Node.js server として稼働させます。これにより以下の方針を採ります。
 
-1. **サーバー依存機能の禁止**
-   - `app/api/` (API Routes), Server Actions (`use server`), `cookies()`, `headers()`, Next.jsの `redirect`/`rewrite` は動作しないため使用禁止。
-2. **動的ルーティング (`[id]`) の代用ルール**
-   - データベースのIDなど、ビルド時に値が確定しない動的ルート（例: `app/album/[id]/page.tsx`）はStatic Exportでは使用できません。
-   - 代わりにクエリパラメータを活用したSPA的な実装（例: `/album/upload?id=123`）を行い、クライアント側で `useSearchParams` を用いて取得します。
-   - `useSearchParams` を呼び出すコンポーネントは、ルーティングのビルドエラーを防ぐために必ず `<Suspense>` でラップする必要があります。
+1. **認証境界は Next.js BFF**
+   - `Route Handlers`, `cookies()`, `headers()` を利用し、Cognito との code exchange と session 管理を server-side に寄せます。
+2. **ブラウザには session cookie だけを持たせる**
+   - Cognito の `access token` / `refresh token` は server-side session store に保持し、ブラウザには `HttpOnly` cookie のみを配布します。
+3. **静的化は必要箇所だけに限定する**
+   - LP や規約ページは prerender を使えますが、認証コールバックや保護画面のガードは server-side で扱える前提とします。
 
 ---
 
@@ -69,7 +70,7 @@ Weave はフォトアルバムエディタのWebアプリケーションです�
 | 候補 | 不採用理由 |
 |------|-----------|
 | Prisma (ORM) | TypeScript 向け。Python バックエンドでは SQLAlchemy が標準的 |
-| Supabase | Firebase で認証・ストレージ要件を満たしており移行コストに見合わない |
+| Supabase | Cognito + S3 で認証・ストレージ要件を満たしており移行コストに見合わない |
 | Redux | エディタアプリの状態管理には Zustand + Immer の方がシンプルで適切 |
 | styled-components | Tailwind CSS の方がチーム間でスタイルの一貫性を保ちやすい |
 | pnpm / yarn | npm で十分。チーム全員が追加ツールなしで即開発可能 |

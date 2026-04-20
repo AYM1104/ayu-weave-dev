@@ -2,10 +2,10 @@
 
 ## 1. 目的
 
-MVP backend 実装に先立ち、公開 API の責務・I/O・重要ルールを揃えるための設計書です。
+MVP backend 実装に先立ち、FastAPI が提供する業務 API の責務・I/O・重要ルールを揃えるための設計書です。
 
 - データモデルの正本: `data_model/data_model.md`
-- API 境界と実装ルールの正本: 本ドキュメント
+- FastAPI API 境界と実装ルールの正本: 本ドキュメント
 - 参照元: `README.md`, `docs/specs/user-flow.md`, Issue #15, Issue #20
 
 ## 2. 前提と用語
@@ -25,7 +25,7 @@ MVP backend 実装に先立ち、公開 API の責務・I/O・重要ルールを
 | album | `books` | UI/API では album、DB では book と呼ぶ |
 | draft | `book_drafts` | 常に最新の編集中データ 1 件 |
 | revision | `book_revisions` | 復元用の不変スナップショット |
-| media | `media_assets` | GCS 上の写真メタデータ。MVP では `book_id` を持つ album 専属リソース |
+| media | `media_assets` | S3 上の写真メタデータ。MVP では `book_id` を持つ album 専属リソース |
 | order | `orders` | MVP では checkout-session / webhook 経由でのみ生成・更新 |
 
 ### MVP で決める保存方針
@@ -40,7 +40,14 @@ MVP backend 実装に先立ち、公開 API の責務・I/O・重要ルールを
 
 ### 認証
 
-- `POST /api/v1/stripe/webhook` を除き、すべて Firebase ID token を前提とする。
+- 詳細仕様の正本は `docs/specs/auth-spec.md` とする。
+- 本ドキュメントで定義する FastAPI API は、原則として Next.js BFF からのみ呼び出す。ブラウザは FastAPI に対して Cognito token を直接送らない。
+- `POST /api/v1/stripe/webhook` を除き、すべて Amazon Cognito `access token` を前提とする。
+- Next.js BFF は server-side session から `access token` を取り出し、FastAPI リクエストに `Authorization: Bearer <access_token>` を付与する。
+- サーバーは Cognito User Pool の JWKS で JWT を検証し、`iss`, `token_use=access`, `client_id`, `exp` をチェックする。
+- `access token` が期限切れの場合、Next.js BFF は `refresh token` を使ってサーバー側で更新してから FastAPI に転送する。
+- 認証済みユーザーの識別子は token の `sub` を正とする。
+- ローカル user / tenant / tenant_membership が未作成の場合は、初回認証済みアクセス時に自動作成する。
 - 認可は「自分の tenant に属する album / media / order のみ触れる」で統一する。
 
 ### リクエストの基本形
@@ -711,7 +718,7 @@ response 例:
 責務:
 
 - 画像本体ではなくメタデータを管理する
-- 画像アップロードは GCS へ直接送る
+- 画像アップロードは S3 へ直接送る
 - エディタで使える状態 (`ready`) になるまでの処理状態を返す
 - MVP では 1 media = 1 album とし、別 album への付け替えや共有は扱わない
 
@@ -727,7 +734,7 @@ media summary の返却フィールド:
 | `height_px` | integer or null | サーバーが検査した高さ |
 | `captured_at` | datetime or null | EXIF 等から得た撮影日時 |
 | `status` | string | `pending / processing / ready / failed / deleted` |
-| `preview_url` | string or null | response 専用 field。`proxy_gcs_key` から導出した URL |
+| `preview_url` | string or null | response 専用 field。`proxy_s3_key` から導出した URL |
 | `created_at` | datetime | 作成日時 |
 | `updated_at` | datetime | 更新日時 |
 
@@ -814,7 +821,7 @@ DB side effects:
 1. `media_assets` に 1 件 insert する。
 2. 初期値は `status = pending`。
 3. `book_id = {album_id}` を固定で保存する。
-4. `original_gcs_key` を発番して signed upload URL を返す。
+4. `original_s3_key` を発番して signed upload URL を返す。
 5. `preview_url` はまだ返さない。
 
 response 例:
@@ -860,7 +867,7 @@ validation:
 
 DB side effects:
 
-1. GCS 上の object 存在確認を行う。
+1. S3 上の object 存在確認を行う。
 2. server 側で画像を検査し、`mime_type`, `byte_size`, `width_px`, `height_px`, `captured_at`, `sha256` の canonical 値を確定する。
 3. `media_assets` を `status = processing` に更新する。
 4. 以後の response では client 申告値ではなく server 側検査値を正として返す。

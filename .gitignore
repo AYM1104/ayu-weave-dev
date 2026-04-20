@@ -22,6 +22,7 @@ pnpm-debug.log*
 # env
 .env
 .env*.local
+secrets/
 
 # typescript
 *.tsbuildinfo
@@ -56,4 +57,3 @@ dist/
 *.egg-info/
 .eggs/
 *.egg
-
