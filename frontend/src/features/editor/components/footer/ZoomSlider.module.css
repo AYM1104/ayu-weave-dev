@@ -1,0 +1,56 @@
+.root {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.slider {
+  width: 224px;
+  -webkit-appearance: none;
+  appearance: none;
+  /* thumb がはみ出ないよう input 自体を thumb と同じ高さに */
+  height: 28px;
+  background: transparent;
+  outline: none;
+  cursor: pointer;
+}
+
+/* トラック（細い横棒） */
+.slider::-webkit-slider-runnable-track {
+  height: 8px;
+  border-radius: 4px;
+  /*
+   * 左側 (--pct まで): 縦グラデーション（立体的な濃い線）
+   * 右側 (--pct 以降): rgba(75,65,48,0.1) フラット（SVGの色）
+   */
+  background:
+    linear-gradient(
+      to bottom,
+      rgba(75, 65, 48, 0.1) 0%,
+      #4b4130 50%,
+      rgba(75, 65, 48, 0.1) 100%
+    ) no-repeat,
+    rgba(75, 65, 48, 0.1);
+  background-size: var(--pct, 50%) 100%, 100% 100%;
+}
+
+/* thumb（白い丸ボタン） */
+.slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: white;
+  /* track(8px) の中央に thumb を揃える: (8 - 28) / 2 = -10 */
+  margin-top: -10px;
+  box-shadow: 0 4px 8px rgba(48, 49, 51, 0.16), 0 0 1px rgba(48, 49, 51, 0.22);
+  cursor: pointer;
+}
+
+.label {
+  width: 35px;
+  font-size: 12px;
+  color: var(--editor-primary-80);
+  text-align: right;
+}

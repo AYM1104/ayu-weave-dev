@@ -1,0 +1,1269 @@
+/**
+ * エディター用CSS変数
+ *
+ * Figma MakeのデザインからN抽出したウォームブラウンのカラーパレットと、
+ * エディター画面固有のスタイル変数。
+ */
+
+/* ──────── エディター カスタムプロパティ ──────── */
+:root {
+  /* プライマリ（ウォームブラウン） */
+  --editor-primary: #4b4130;
+  --editor-primary-80: rgba(75, 65, 48, 0.8);
+  --editor-primary-50: rgba(75, 65, 48, 0.5);
+  --editor-primary-20: rgba(75, 65, 48, 0.2);
+  --editor-primary-10: rgba(75, 65, 48, 0.1);
+  --editor-primary-08: rgba(75, 65, 48, 0.08);
+
+  /* 背景・サーフェス */
+  --editor-bg: #f5f4f1;
+  --editor-bg-subtle: #f5f1ee;
+  --editor-surface: #ffffff;
+
+  /* テキスト */
+  --editor-text: #12100c;
+  --editor-text-60: rgba(18, 16, 12, 0.6);
+  --editor-text-08: rgba(18, 16, 12, 0.08);
+
+  /* ボーダー */
+  --editor-border: #d9d9d9;
+  --editor-border-light: rgba(18, 16, 12, 0.08);
+
+  /* フォント */
+  --editor-font-body: "Hiragino Kaku Gothic Pro", "Hiragino Sans",
+    "Noto Sans JP", sans-serif;
+  --editor-font-display: "Italiana", serif;
+
+  /* サイドバー幅 */
+  --editor-sidebar-width: 280px;
+
+  /* ヘッダー高さ */
+  --editor-header-height: 40px;
+  --editor-controlbar-height: 56px;
+
+  /* フッター */
+  --editor-footer-height: 140px;
+
+  /* ローディング/オーバーレイ */
+  --editor-skeleton-overlay:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.12), rgba(233, 228, 223, 0.3)),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.18), rgba(255, 255, 255, 0.04));
+  --editor-skeleton-shimmer: linear-gradient(
+    115deg,
+    rgba(255, 255, 255, 0) 12%,
+    rgba(255, 255, 255, 0.5) 48%,
+    rgba(255, 255, 255, 0) 82%
+  );
+
+  /* 右サイドバー下部パネル */
+  --editor-bottom-panel-bg:
+    linear-gradient(180deg, rgba(244, 240, 236, 0), rgba(244, 240, 236, 0.98) 24%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.52), rgba(244, 240, 236, 0.96));
+}
+
+/* ──────── エディター全体のCSSリセット ──────── */
+.editor-root {
+  font-family: var(--editor-font-body);
+  color: var(--editor-text);
+  background-color: var(--editor-bg);
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+/* ──────── コントロールバー ──────── */
+.editor-controlbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 56px;
+  height: var(--editor-controlbar-height);
+  flex-shrink: 0;
+  gap: 8px;
+}
+
+.editor-controlbar__left {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.editor-controlbar__right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* アイコンボタン共通 */
+.editor-icon-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: none;
+  background: transparent;
+  color: var(--editor-primary);
+  cursor: pointer;
+  border-radius: 8px;
+  transition: background 0.15s ease;
+}
+
+.editor-icon-btn:hover {
+  background: var(--editor-primary-10);
+}
+
+.editor-icon-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+/* テキストボタン（プレビュー等） */
+.editor-btn-ghost {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 136px;
+  height: 32px;
+  padding: 7px 12px;
+  border-radius: 100px;
+  border: none;
+  background: var(--editor-primary-20);
+  backdrop-filter: blur(7px);
+  color: var(--editor-primary);
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.editor-btn-ghost:hover {
+  background: var(--editor-primary-50);
+  color: white;
+}
+
+.editor-btn-primary {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 136px;
+  height: 32px;
+  padding: 9px 16px;
+  border-radius: 100px;
+  border: 2px solid var(--editor-border-light);
+  background: var(--editor-primary);
+  color: white;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  transition: opacity 0.15s ease;
+}
+
+.editor-btn-primary:hover {
+  opacity: 0.85;
+}
+
+/* ──────── メインコンテンツ（3ペイン） ──────── */
+.editor-main {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+  min-height: 0;
+}
+
+/* 中央カラム: キャンバス + フッター + コントロールバー（サイドバー間） */
+.editor-center {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow: hidden;
+}
+
+/* ──────── 左サイドバー ──────── */
+.editor-sidebar-left {
+  width: var(--editor-sidebar-width);
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  padding: 12px;
+  overflow-y: auto;
+  position: relative;
+  /* スクロールバー非表示 */
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
+}
+
+.editor-sidebar-left::-webkit-scrollbar {
+  display: none; /* Chrome, Safari and Opera */
+}
+
+/* 下部のフェードグラデーション */
+.editor-sidebar-left::after {
+  content: "";
+  position: sticky;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 32px;
+  background: linear-gradient(to top, var(--editor-bg-subtle), transparent);
+  pointer-events: none;
+  flex-shrink: 0;
+}
+
+/* テンプレート情報 */
+.editor-template-info {
+  width: 100%;
+  height: 88px;
+  border-radius: 16px;
+  background: var(--editor-primary);
+  color: white;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 12px 16px;
+  border: none;
+  overflow: hidden;
+  position: relative;
+  flex-shrink: 0;
+}
+
+.editor-template-info__title {
+  font-size: 14px;
+  font-weight: 600;
+  text-align: center;
+  width: 126px;
+}
+
+.editor-template-info__sub {
+  font-size: 12px;
+  font-weight: 300;
+}
+
+.editor-sidebar-left--cover {
+  gap: 18px;
+  background:
+    radial-gradient(circle at top, rgba(255, 255, 255, 0.66), rgba(245, 241, 238, 0) 34%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.42), rgba(245, 241, 238, 0.22));
+}
+
+.editor-cover-sidebar__hero {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 4px 4px 0;
+}
+
+.editor-cover-sidebar__eyebrow {
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--editor-primary-50);
+}
+
+.editor-cover-sidebar__title {
+  margin: 0;
+  font-size: 22px;
+  line-height: 1.2;
+  font-weight: 600;
+  color: var(--editor-primary);
+}
+
+.editor-cover-sidebar__description {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--editor-text-60);
+}
+
+.editor-cover-sidebar__preview-card {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 18px 12px;
+  border-radius: 24px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.82), rgba(246, 241, 235, 0.88)),
+    var(--editor-bg-subtle);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.76);
+}
+
+.editor-cover-sidebar__section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.editor-cover-sidebar__section-title {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--editor-primary);
+}
+
+.editor-cover-sidebar__option-list,
+.editor-cover-sidebar__material-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.editor-cover-sidebar__page-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  padding: 14px 14px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(75, 65, 48, 0.12);
+  background: rgba(255, 255, 255, 0.74);
+  color: var(--editor-text);
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
+}
+
+.editor-cover-sidebar__page-option:hover,
+.editor-cover-sidebar__material:hover {
+  border-color: rgba(75, 65, 48, 0.22);
+  background: rgba(255, 255, 255, 0.92);
+}
+
+.editor-cover-sidebar__page-option--active {
+  border-color: var(--editor-primary);
+  background: rgba(75, 65, 48, 0.08);
+  box-shadow: inset 0 0 0 1px rgba(75, 65, 48, 0.08);
+}
+
+.editor-cover-sidebar__option-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--editor-primary);
+}
+
+.editor-cover-sidebar__option-detail {
+  margin-top: 2px;
+  font-size: 12px;
+  color: var(--editor-text-60);
+}
+
+.editor-cover-sidebar__option-price {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--editor-primary);
+  white-space: nowrap;
+}
+
+.editor-cover-sidebar__swatches {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.editor-cover-sidebar__swatch {
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  border: 1px solid rgba(75, 65, 48, 0.14);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+}
+
+.editor-cover-sidebar__swatch:hover {
+  transform: translateY(-1px);
+}
+
+.editor-cover-sidebar__swatch--active {
+  border-color: var(--editor-primary);
+  box-shadow: 0 0 0 2px rgba(75, 65, 48, 0.16);
+}
+
+.editor-cover-sidebar__material {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 9px 12px;
+  border-radius: 12px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--editor-primary);
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.editor-cover-sidebar__material--active {
+  border-color: rgba(75, 65, 48, 0.16);
+  background: rgba(75, 65, 48, 0.06);
+}
+
+.editor-cover-sidebar__material-indicator {
+  width: 16px;
+  height: 16px;
+  border-radius: 999px;
+  border: 1px solid rgba(75, 65, 48, 0.36);
+  position: relative;
+  flex-shrink: 0;
+}
+
+.editor-cover-sidebar__material--active .editor-cover-sidebar__material-indicator::after {
+  content: "";
+  position: absolute;
+  inset: 3px;
+  border-radius: inherit;
+  background: var(--editor-primary);
+}
+
+/* レイアウト選択 */
+.editor-layout-select {
+  width: 100%;
+  height: 40px;
+  border: 1px solid var(--editor-border);
+  border-radius: 8px;
+  padding: 0 12px 0 16px;
+  font-size: 16px;
+  color: var(--editor-text);
+  background: white;
+  appearance: none;
+  cursor: pointer;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%234B4130' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+}
+
+/* アコーディオン */
+.editor-accordion {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+}
+
+.editor-accordion__trigger {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 4px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  width: 100%;
+  border-radius: 4px;
+}
+
+.editor-accordion__trigger:hover {
+  background: var(--editor-primary-08);
+}
+
+.editor-accordion__chevron {
+  width: 16px;
+  height: 16px;
+  transition: transform 0.2s ease;
+  color: var(--editor-primary);
+}
+
+.editor-accordion__chevron--open {
+  transform: rotate(0deg);
+}
+
+.editor-accordion__chevron--closed {
+  transform: rotate(-90deg);
+}
+
+.editor-accordion__label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--editor-primary-80);
+}
+
+.editor-accordion__count {
+  font-size: 12px;
+  font-weight: 300;
+  color: var(--editor-primary-50);
+}
+
+/* レイアウトサムネイルグリッド */
+.editor-layout-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 4px;
+  width: 100%;
+}
+
+.editor-layout-grid--square {
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+.editor-layout-thumb {
+  position: relative;
+  background: white;
+  overflow: hidden;
+  cursor: pointer;
+  border: 0px solid transparent;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.editor-layout-thumb::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--editor-primary-20);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s ease;
+}
+
+.editor-layout-thumb:hover {
+  box-shadow: none;
+}
+
+.editor-layout-thumb:hover::after {
+  opacity: 1;
+}
+
+.editor-layout-thumb--selected {
+  border-color: transparent;
+  box-shadow: none;
+}
+
+.editor-layout-thumb--selected::after {
+  opacity: 0.12;
+}
+
+.editor-layout-thumb--selected:hover::after {
+  opacity: 0.2;
+}
+
+.editor-layout-thumb--spread {
+  width: 100%;
+  aspect-ratio: 126 / 89;
+}
+
+.editor-layout-thumb--square {
+  width: 100%;
+  aspect-ratio: 77 / 109;
+}
+
+.editor-layout-thumb__slot {
+  position: absolute;
+  background: rgba(0, 0, 0, 0.1);
+}
+
+/* ──────── 中央キャンバス ──────── */
+.editor-canvas-area {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  overflow: hidden;
+  position: relative;
+}
+
+.editor-canvas-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  position: relative;
+  flex: 1;
+  width: 100%;
+  padding: 14px 56px;
+}
+
+.editor-canvas-wrapper--cover {
+  padding-inline: 72px;
+}
+
+/* ページ送りボタン */
+.editor-page-nav {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 12px;
+  border-radius: 28px;
+  border: none;
+  background: var(--editor-primary-10);
+  backdrop-filter: blur(7.5px);
+  box-shadow: 0 0 11px rgba(0, 0, 0, 0.11);
+  cursor: pointer;
+  color: var(--editor-primary);
+  flex-shrink: 0;
+  transition: background 0.15s ease;
+  z-index: 5;
+}
+
+.editor-page-nav--prev {
+  left: 56px;
+}
+
+.editor-page-nav--next {
+  right: 56px;
+}
+
+.editor-page-nav:hover {
+  background: var(--editor-primary-20);
+}
+
+.editor-page-nav:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.editor-cover-canvas {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+}
+
+.editor-cover-canvas__backdrop {
+  position: absolute;
+  inset: 0 40px 18px;
+  background:
+    radial-gradient(circle at 50% 10%, rgba(255, 255, 255, 0.88), rgba(245, 240, 233, 0.62) 40%, rgba(239, 233, 225, 0.2) 66%, transparent 100%),
+    radial-gradient(circle at center, rgba(75, 65, 48, 0.08), transparent 62%);
+  pointer-events: none;
+}
+
+.editor-cover-preview {
+  position: relative;
+  z-index: 1;
+}
+
+.editor-cover-preview__scaled {
+  width: 918px;
+  height: 620px;
+}
+
+.editor-cover-preview__spread {
+  width: 918px;
+  height: 620px;
+  display: grid;
+  grid-template-columns: 439px 40px 439px;
+  background: var(--cover-backdrop);
+  box-shadow: 0 10px 30px var(--cover-shadow);
+  overflow: hidden;
+}
+
+.editor-cover-preview__page,
+.editor-cover-preview__spine {
+  position: relative;
+  overflow: hidden;
+}
+
+.editor-cover-preview__page {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.54), rgba(255, 255, 255, 0) 22%),
+    linear-gradient(135deg, rgba(255, 255, 255, 0.24), rgba(0, 0, 0, 0) 48%),
+    linear-gradient(180deg, var(--cover-paper), var(--cover-paper-strong)),
+    var(--cover-paper);
+}
+
+.editor-cover-preview__page--back {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(255, 255, 255, 0.66) 22%, rgba(243, 239, 233, 0.94) 100%),
+    linear-gradient(180deg, #fff, rgba(255, 255, 255, 0.4)),
+    var(--cover-paper);
+  box-shadow:
+    inset -20px 0 22px rgba(0, 0, 0, 0.04),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.48);
+}
+
+.editor-cover-preview__page--front {
+  box-shadow: inset 16px 0 26px rgba(0, 0, 0, 0.04);
+}
+
+.editor-cover-preview__spine {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background:
+    linear-gradient(90deg, rgba(255, 255, 255, 0.36), rgba(255, 255, 255, 0.06) 24%, rgba(255, 255, 255, 0.2) 100%),
+    var(--cover-spine);
+  box-shadow:
+    inset -8px 0 12px rgba(0, 0, 0, 0.02),
+    inset 8px 0 12px rgba(255, 255, 255, 0.3);
+}
+
+.editor-cover-preview__spine span {
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: rgba(74, 64, 48, 0.38);
+}
+
+.editor-cover-preview__texture {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.5;
+  background:
+    radial-gradient(circle at 20% 20%, rgba(255, 255, 255, 0.38), transparent 28%),
+    radial-gradient(circle at 80% 16%, rgba(255, 255, 255, 0.22), transparent 22%),
+    repeating-linear-gradient(
+      28deg,
+      rgba(74, 64, 48, 0.018) 0,
+      rgba(74, 64, 48, 0.018) 1px,
+      transparent 1px,
+      transparent 9px
+    ),
+    repeating-linear-gradient(
+      -35deg,
+      rgba(255, 255, 255, 0.22) 0,
+      rgba(255, 255, 255, 0.22) 1px,
+      transparent 1px,
+      transparent 11px
+    );
+  mix-blend-mode: multiply;
+}
+
+.editor-cover-preview__texture--back {
+  opacity: 0.42;
+  background:
+    radial-gradient(circle at 18% 16%, rgba(255, 255, 255, 0.9), transparent 24%),
+    radial-gradient(circle at 82% 18%, rgba(255, 255, 255, 0.46), transparent 21%),
+    radial-gradient(circle at 28% 74%, rgba(255, 255, 255, 0.32), transparent 19%),
+    radial-gradient(circle at 74% 82%, rgba(255, 255, 255, 0.42), transparent 28%),
+    linear-gradient(145deg, rgba(142, 126, 101, 0.09), rgba(255, 255, 255, 0) 42%),
+    repeating-linear-gradient(
+      32deg,
+      rgba(116, 101, 78, 0.055) 0,
+      rgba(116, 101, 78, 0.055) 2px,
+      transparent 2px,
+      transparent 16px
+    ),
+    repeating-linear-gradient(
+      -36deg,
+      rgba(255, 255, 255, 0.42) 0,
+      rgba(255, 255, 255, 0.42) 1px,
+      transparent 1px,
+      transparent 14px
+    );
+  mix-blend-mode: multiply;
+}
+
+.editor-cover-preview__back-panel {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 150px;
+  height: 150px;
+  transform: translate(-50%, -50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  color: var(--cover-ink);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.5), rgba(255, 255, 255, 0.12)),
+    radial-gradient(circle at 50% 38%, rgba(255, 255, 255, 0.5), transparent 48%),
+    linear-gradient(145deg, rgba(214, 201, 181, 0.92), rgba(187, 169, 146, 0.94));
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.44),
+    inset 0 14px 16px rgba(255, 255, 255, 0.16),
+    0 20px 36px rgba(74, 64, 48, 0.08);
+}
+
+.editor-cover-preview__back-panel::before,
+.editor-cover-preview__back-panel::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.editor-cover-preview__back-panel::before {
+  background:
+    radial-gradient(circle at 50% 44%, rgba(255, 255, 255, 0.4), transparent 40%),
+    repeating-linear-gradient(
+      0deg,
+      rgba(255, 255, 255, 0.18) 0,
+      rgba(255, 255, 255, 0.18) 1px,
+      transparent 1px,
+      transparent 10px
+    ),
+    repeating-linear-gradient(
+      90deg,
+      rgba(106, 89, 63, 0.06) 0,
+      rgba(106, 89, 63, 0.06) 1px,
+      transparent 1px,
+      transparent 12px
+    );
+  opacity: 0.72;
+}
+
+.editor-cover-preview__back-panel::after {
+  inset: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  opacity: 0.56;
+}
+
+.editor-cover-preview__back-panel svg {
+  position: relative;
+  z-index: 1;
+  width: 76%;
+  height: 76%;
+}
+
+.editor-cover-preview__title,
+.editor-cover-preview__subtitle {
+  position: absolute;
+  color: var(--cover-ink);
+  font-weight: 700;
+  letter-spacing: -0.04em;
+  line-height: 1.05;
+}
+
+.editor-cover-preview__title span,
+.editor-cover-preview__subtitle span {
+  display: block;
+}
+
+.editor-cover-preview__title {
+  top: 142px;
+  left: 68px;
+  font-size: 58px;
+}
+
+.editor-cover-preview__subtitle {
+  right: 44px;
+  bottom: 164px;
+  font-size: 54px;
+  text-align: left;
+}
+
+.editor-cover-preview__footer {
+  position: absolute;
+  left: 38px;
+  right: 38px;
+  bottom: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--cover-ink);
+}
+
+.editor-cover-preview[data-material="leather"] .editor-cover-preview__texture {
+  opacity: 0.46;
+}
+
+.editor-cover-preview[data-material="matte"] .editor-cover-preview__texture,
+.editor-cover-preview[data-material="soft-matte"] .editor-cover-preview__texture {
+  opacity: 0.3;
+}
+
+.editor-cover-preview[data-material="rough"] .editor-cover-preview__texture {
+  opacity: 0.72;
+}
+
+.editor-cover-preview--sidebar,
+.editor-cover-preview--thumbnail {
+  box-shadow: none;
+}
+
+.editor-cover-preview--sidebar .editor-cover-preview__spread {
+  box-shadow: 0 12px 28px rgba(71, 61, 46, 0.14);
+}
+
+.editor-cover-preview--sidebar .editor-cover-preview__back-panel {
+  width: 136px;
+  height: 136px;
+}
+
+.editor-cover-preview--sidebar .editor-cover-preview__title {
+  top: 116px;
+  left: 56px;
+  font-size: 52px;
+}
+
+.editor-cover-preview--sidebar .editor-cover-preview__subtitle {
+  right: 38px;
+  bottom: 134px;
+  font-size: 48px;
+}
+
+.editor-cover-preview--thumbnail .editor-cover-preview__spread {
+  box-shadow: none;
+}
+
+.editor-cover-preview--thumbnail .editor-cover-preview__back-panel {
+  width: 98px;
+  height: 98px;
+}
+
+.editor-cover-preview--thumbnail .editor-cover-preview__title {
+  top: 146px;
+  left: 84px;
+  font-size: 46px;
+}
+
+.editor-cover-preview--thumbnail .editor-cover-preview__subtitle {
+  right: 46px;
+  bottom: 158px;
+  font-size: 42px;
+}
+
+.editor-cover-preview--thumbnail .editor-cover-preview__footer {
+  left: 22px;
+  right: 22px;
+  bottom: 18px;
+  font-size: 8px;
+}
+
+.editor-cover-preview--thumbnail .editor-cover-preview__spine span {
+  font-size: 7px;
+}
+
+/* 見開きビュー */
+.editor-spread {
+  display: flex;
+  align-items: center;
+  background: white;
+  box-shadow: 0 0 8px rgba(0, 0, 0, 0.12);
+  flex-shrink: 0;
+  transition: transform 0.15s ease;
+  position: relative;
+}
+
+.editor-spread__page {
+  position: relative;
+  background: white;
+  overflow: hidden;
+  cursor: pointer;
+  transition: box-shadow 0.15s ease, outline-color 0.15s ease;
+}
+
+.editor-spread__page:focus-visible {
+  outline: 2px solid var(--editor-primary);
+  outline-offset: -2px;
+}
+
+.editor-spread__page--selected {
+  outline: 2px solid var(--editor-primary-50);
+  outline-offset: -2px;
+  z-index: 1;
+}
+
+/* ページ内の影（内側） */
+.editor-spread__page--left {
+  box-shadow: inset -4px 0 26px rgba(0, 0, 0, 0.05);
+}
+
+.editor-spread__page--right {
+  box-shadow: inset 5px 0 8px rgba(0, 0, 0, 0.05);
+}
+
+/* 綴じ（中央のスパイン） */
+.editor-spread__spine {
+  width: 4px;
+  background: rgba(255, 255, 255, 0.6);
+  box-shadow: 0 0 14px rgba(0, 0, 0, 0.06);
+  align-self: stretch;
+}
+
+/* ページラベル */
+.editor-spread__ratio-label {
+  position: absolute;
+  font-size: 20px;
+  font-weight: 300;
+  color: var(--editor-text-60);
+  text-align: center;
+  pointer-events: none;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.editor-spread__ratio-label--spread {
+  z-index: 2;
+}
+
+@keyframes editor-skeleton-shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+/* スロット（写真配置枠） */
+.editor-slot {
+  position: absolute;
+  background: var(--editor-text-08);
+  transition: box-shadow 0.15s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.editor-slot:hover {
+  box-shadow: 0 0 0 2px var(--editor-primary-50);
+}
+
+.editor-slot--active {
+  box-shadow: 0 0 0 2px var(--editor-primary-50);
+}
+
+.editor-slot--selected {
+  box-shadow: 0 0 0 3px var(--editor-primary);
+}
+
+.editor-slot__image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: opacity 0.2s ease;
+}
+
+.editor-slot__image--hidden {
+  opacity: 0;
+}
+
+.editor-slot__skeleton {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 1;
+  background: var(--editor-skeleton-overlay);
+  backdrop-filter: blur(1.5px);
+}
+
+.editor-slot__skeleton::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--editor-skeleton-shimmer);
+  animation: editor-skeleton-shimmer 1.5s ease-in-out infinite;
+}
+
+.editor-slot__status {
+  position: absolute;
+  z-index: 2;
+  left: 8px;
+  right: 8px;
+  bottom: 8px;
+  border-radius: 999px;
+  background: rgba(18, 16, 12, 0.68);
+  color: white;
+  font-size: 11px;
+  font-weight: 700;
+  text-align: center;
+  padding: 4px 6px;
+  backdrop-filter: blur(4px);
+}
+
+/* ──────── フッター ──────── */
+.editor-footer {
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+}
+
+/* ページネーション（サムネイル横スクロール） */
+.editor-pagination {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+  padding: 0 56px; /* 両サイドにスクロール領域外の余白をつける */
+}
+
+.editor-pagination__track {
+  display: flex;
+  gap: 16px;
+  padding: 0 16px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  position: relative;
+}
+
+.editor-pagination__track::-webkit-scrollbar {
+  display: none;
+}
+
+.editor-pagination__scrollbar {
+  position: relative;
+  width: 100%;
+  height: 12px;
+  border-radius: 999px;
+  background: linear-gradient(
+    to bottom,
+    rgba(75, 65, 48, 0.04) 0%,
+    rgba(75, 65, 48, 0.14) 50%,
+    rgba(75, 65, 48, 0.04) 100%
+  );
+  cursor: pointer;
+  user-select: none;
+  touch-action: none;
+  overflow: hidden;
+  transition: opacity 0.18s ease;
+}
+
+.editor-pagination__scrollbar--hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.editor-pagination__scrollbar-thumb {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(
+    to bottom,
+    rgba(75, 65, 48, 0.1) 0%,
+    #4b4130 50%,
+    rgba(75, 65, 48, 0.1) 100%
+  );
+  cursor: grab;
+  transition: filter 0.15s ease;
+}
+
+.editor-pagination__scrollbar-thumb:hover {
+  filter: brightness(1.04);
+}
+
+.editor-pagination__scrollbar--dragging .editor-pagination__scrollbar-thumb {
+  cursor: grabbing;
+}
+
+.editor-pagination__page {
+  display: flex;
+  gap: 1px;
+  flex-shrink: 0;
+  width: 125px;
+  box-shadow: 0 0 5px rgba(0, 0, 0, 0.15);
+  cursor: pointer;
+  border: 2px solid transparent;
+  transition: border-color 0.15s ease;
+  position: relative;
+}
+
+.editor-pagination__page--cover {
+  align-items: flex-end;
+  justify-content: flex-start;
+  overflow: hidden;
+}
+
+.editor-pagination__page--active {
+  border-color: var(--editor-primary);
+  background: var(--editor-primary-10);
+}
+
+.editor-pagination__page:hover:not(.editor-pagination__page--active) {
+  border-color: var(--editor-primary-50);
+}
+
+.editor-pagination__page-half {
+  width: 50%;
+  height: 88px;
+  background: white;
+  position: relative;
+  overflow: hidden;
+}
+
+.editor-pagination__page-num {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  padding: 1px 4px;
+  font-size: 12px;
+  color: white;
+  background: linear-gradient(
+    50.63deg,
+    rgba(18, 16, 12, 0.63) 0%,
+    rgba(18, 16, 12, 0.14) 100%
+  );
+  backdrop-filter: blur(4px);
+  min-width: 22px;
+  text-align: center;
+}
+
+/* ページコントロール（ズーム等） */
+.editor-page-control {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 24px;
+  padding: 4px 12px 16px;
+}
+
+/* ページカウンター */
+.editor-page-counter {
+  font-size: 12px;
+  color: var(--editor-primary-50);
+}
+
+/* グリッド表示ボタン */
+.editor-view-toggle {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 136px;
+  padding: 4px 12px;
+  border-radius: 100px;
+  border: none;
+  background: transparent;
+  box-shadow: 0 0 8px rgba(0, 0, 0, 0.16);
+  backdrop-filter: blur(7px);
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--editor-primary);
+  transition: background 0.15s ease;
+}
+
+.editor-view-toggle:hover {
+  background: var(--editor-primary-10);
+}
+
+/* ──────── フェード（ページネーション端） ──────── */
+.editor-pagination__fade-left,
+.editor-pagination__fade-right {
+  position: absolute;
+  top: 0;
+  width: 32px;
+  height: 88px;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.editor-pagination__fade-left {
+  left: 16px;
+  background: linear-gradient(to right, var(--editor-bg), transparent);
+}
+
+.editor-pagination__fade-right {
+  right: 16px;
+  background: linear-gradient(to left, var(--editor-bg), transparent);
+}

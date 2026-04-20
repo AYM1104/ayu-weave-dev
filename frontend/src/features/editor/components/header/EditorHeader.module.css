@@ -1,0 +1,45 @@
+/* =========================================================================
+ *  ヘッダー全体・レイアウト基礎
+ * ========================================================================= */
+.root {
+  display: flex;
+  justify-content: center;
+  flex-shrink: 0;
+  min-height: var(--editor-header-height);
+  padding: 10px 16px 6px;
+  position: relative;
+  z-index: 40;
+  overflow: visible;
+}
+
+.anchor {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  width: 100%;
+}
+
+.scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  border: none;
+  background: transparent;
+  cursor: default;
+}
+
+/* =========================================================================
+ *  レスポンシブ対応（タブレット・スマホ画面向けのサイズ調整）
+ * ========================================================================= */
+@media (max-width: 900px) {
+  .root {
+    padding: 10px 12px 6px;
+  }
+}
+
+@media (max-width: 640px) {
+  .root {
+    min-height: 0;
+    padding-top: 10px;
+  }
+}

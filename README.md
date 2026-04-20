@@ -60,11 +60,11 @@
 | スタイリング | Tailwind CSS v4 |
 | キャンバス | react-konva (Konva) |
 | 状態管理 | Zustand + Immer |
-| 認証 | AWS 方針に準拠（方式は未決定: 後続ADRで決定） |
+| 認証 | Amazon Cognito User Pool + Next.js BFF (Google federation) |
 | バックエンド | FastAPI (Python 3.13) / Uvicorn |
 | DB / ORM | PostgreSQL / SQLAlchemy (asyncio) / Alembic |
-| ストレージ | AWS 方針に準拠（方式は未決定: 後続ADRで決定） |
-| デプロイ | AWS 方針に準拠（実行基盤は未決定: 後続ADRで決定） / GitHub Actions |
+| ストレージ | Amazon S3 |
+| デプロイ | AWS EC2 (Next.js) / AWS ECS or App Runner (FastAPI) / GitHub Actions |
 | テスト | Vitest / Playwright |
 
 
@@ -97,9 +97,8 @@ weave-dev/
 │   │   └── features/  ... 機能別モジュール（auth, editor, payment 等）
 │   ├── alembic/       ... DBマイグレーション
 │   └── tests/
-├── infra/             ... インフラ設定（AWS方針。個別サービスは未決定）
+├── infra/             ... インフラ設定（AWS）
 ├── docs/              ... 設計書・仕様書
-└── data_model/        ... データモデル設計
 ```
 
 詳細: [docs/specs/directory-structure.md](docs/specs/directory-structure.md)
