@@ -39,7 +39,7 @@ export default function EditorFooter() {
 
         {/* ページカウンター */}
         <span className="editor-page-counter">
-          {currentSpreadIndex} / {maxSpread}
+          {currentSpreadIndex === 0 ? "表紙" : currentSpreadIndex} / {maxSpread}
         </span>
 
         {/* グリッド表示切り替え */}

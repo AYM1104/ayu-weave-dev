@@ -1,4 +1,6 @@
 import type { CSSProperties } from "react";
+import CoverSpreadPreview from "../../cover/CoverSpreadPreview";
+import { useEditorStore } from "../../../store/editorStore";
 import type {
   AlbumPage,
   LayoutTemplate,
@@ -61,6 +63,7 @@ export default function SpreadThumbnail({
   isActive,
   onClick,
 }: SpreadThumbnailProps) {
+  const coverDesign = useEditorStore((s) => s.coverDesign);
   // `leftPage` / `rightPage` は pages 配列の index。表紙や最終ページでは null になりうる。
   const leftPageData = leftPage !== null ? pages[leftPage] ?? null : null;
   const rightPageData = rightPage !== null ? pages[rightPage] ?? null : null;
@@ -87,6 +90,22 @@ export default function SpreadThumbnail({
     layouts,
     spreadLayoutSource,
   );
+
+  if (spreadIndex === 0) {
+    return (
+      <div
+        className={`editor-pagination__page editor-pagination__page--cover ${isActive ? "editor-pagination__page--active" : ""}`}
+        onClick={onClick}
+      >
+        <CoverSpreadPreview
+          design={coverDesign}
+          variant="thumbnail"
+          scale={125 / 918}
+        />
+        <span className="editor-pagination__page-num">表紙</span>
+      </div>
+    );
+  }
 
   return (
     <div
