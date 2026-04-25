@@ -8,33 +8,16 @@ import PlusIcon from "@/shared/icons/PlusIcon";
 import styles from "./RightSidebar.module.css";
 
 interface RightSidebarEmptyStateProps {
-  isLoading: boolean;
   onOpenFileDialog: () => void;
   onDrop: DragEventHandler<HTMLElement>;
   onKeyDown: KeyboardEventHandler<HTMLElement>;
 }
 
 export default function RightSidebarEmptyState({
-  isLoading,
   onOpenFileDialog,
   onDrop,
   onKeyDown,
 }: RightSidebarEmptyStateProps) {
-  if (isLoading) {
-    return (
-      <div className={styles.uploadArea} aria-busy="true">
-        <div className={styles.uploadAreaBody}>
-          <div className={styles.uploadAreaText}>
-            <span>アップロード済み写真を確認中です</span>
-          </div>
-          <div className={styles.uploadAreaHint}>
-            右サイドバーの写真ライブラリを読み込んでいます
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div
       className={styles.uploadArea}

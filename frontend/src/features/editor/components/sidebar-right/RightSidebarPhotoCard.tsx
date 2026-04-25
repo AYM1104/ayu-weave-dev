@@ -22,7 +22,7 @@ function getPhotoCardImageUrl(photo: UploadedPhoto) {
 interface RightSidebarPhotoCardProps {
   photo: UploadedPhoto;
   isImageLoaded: boolean;
-  onImageLoad: (url: string) => void;
+  onImageLoad: (photoId: string, url: string) => void;
   onPhotoSelect: (photoId: string) => void;
 }
 
@@ -61,7 +61,7 @@ export default function RightSidebarPhotoCard({
           src={imageUrl}
           alt={photo.fileName}
           loading="lazy"
-          onLoad={() => onImageLoad(imageUrl)}
+          onLoad={() => onImageLoad(photo.id, imageUrl)}
         />
       ) : null}
       {showSkeleton ? (

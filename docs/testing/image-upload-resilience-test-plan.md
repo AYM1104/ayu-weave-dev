@@ -194,7 +194,102 @@ Issue #48 配下の画像アップロード耐性検証に向けて、検証対�
 - ブラウザ負荷の確認方法
 - ネットワーク条件の記録方法
 
-## 10. 記録ルール
+## 10. 計測方法と記録ルール
+
+### 10.1 共通の突合キー
+
+frontend / backend のログは、少なくとも以下のキーで突合する。
+
+- `batch_id`: 1回のファイル選択または drag & drop ごとの単位
+- `client_upload_id`: frontend で各ファイルに振る識別子
+- `media_id`: initialize API 成功後に backend が払い出す識別子
+- `album_id`: 対象アルバム
+
+補足:
+
+- `batch_id` と `client_upload_id` は frontend から `X-Upload-Batch-Id` / `X-Upload-Client-Id` ヘッダーとして送る。
+- initialize 完了後は `media_id` を frontend 側ログにも残す。
+- 1件単位の詳細確認は `client_upload_id` または `media_id`、バッチ全体の確認は `batch_id` を起点に見る。
+
+### 10.2 frontend の取得方法
+
+frontend はブラウザ console に structured log を出力する。耐性検証では DevTools を開き、`[upload-telemetry]` でフィルタして確認する。
+
+主なイベント:
+
+- `upload_batch_started`
+- `upload_batch_completed`
+- `upload_item_started`
+- `upload_item_initialize_started` / `upload_item_initialize_completed` / `upload_item_initialize_failed`
+- `upload_item_put_started` / `upload_item_put_completed` / `upload_item_put_failed`
+- `upload_item_complete_started` / `upload_item_complete_completed` / `upload_item_complete_failed`
+- `upload_item_poll_ready_started` / `upload_item_poll_ready_completed` / `upload_item_poll_ready_failed`
+- `upload_item_preview_available`
+- `upload_item_preview_rendered`
+- `upload_item_cancelled`
+
+確認観点:
+
+- バッチ開始 / 終了時刻、総ファイル数、合計バイト数
+- 1件ごとの stage 開始 / 完了時刻と `stage_duration_ms`
+- `preview_available_duration_ms` と `preview_render_duration_ms`
+- 成功件数 / 失敗件数 / キャンセル件数 / `processing_count`
+- ブラウザ情報と、取得できる場合は `navigator.connection` 由来の回線情報
+
+運用メモ:
+
+- frontend 計測は開発環境では既定で有効とする。
+- production build で同じ console 計測を見たい場合は `NEXT_PUBLIC_ENABLE_UPLOAD_TELEMETRY=true` を設定する。
+
+### 10.3 backend の取得方法
+
+backend はアプリケーションログに JSON 形式の structured log を出力する。検証時は backend の標準出力またはコンテナログを保存し、以下のイベントを確認する。
+
+主なイベント:
+
+- `backend_upload_initialize_completed`
+- `backend_upload_initialize_failed`
+- `backend_upload_complete_completed`
+- `backend_upload_complete_failed`
+- `backend_upload_complete_processing_completed`
+- `backend_upload_complete_processing_failed`
+
+確認観点:
+
+- `api_duration_ms`
+- `original_exists_ms`
+- `original_download_ms`
+- `variants_generate_ms`
+- `preview_upload_ms`
+- `thumbnail_upload_ms`
+- `complete_processing_ms`
+- `current_processing_count`
+- `remaining_processing_count`
+- `peak_processing_count`
+- `failure_stage`, `error_type`, `error_message`
+
+backend 側でも `batch_id` / `client_upload_id` / `media_id` / `album_id` を同じログに残すため、frontend 側の item ログとそのまま突合できる。
+
+### 10.4 実行環境の記録方法
+
+backend CPU / memory は、実行形態に応じて以下のいずれかで記録する。
+
+- ローカルプロセス実行時: `ps -o pid,%cpu,rss,command -p <backend_pid>`
+- Docker 実行時: `docker stats --no-stream`
+
+ブラウザ負荷は、少なくとも以下のいずれかで残す。
+
+- Chrome DevTools の Performance パネル
+- Chrome DevTools の Memory パネル
+- Chrome Task Manager
+
+ネットワーク条件は以下を併記する。
+
+- 手動で設定した throttling 条件
+- Wi-Fi / 4G 相当などのシナリオ条件
+- frontend batch log に残る `effectiveType`, `downlinkMbps`, `rttMs`, `saveData`
+
+### 10.5 記録ルール
 
 各シナリオでは、少なくとも以下を記録する。
 
@@ -204,10 +299,28 @@ Issue #48 配下の画像アップロード耐性検証に向けて、検証対�
 - 回線条件
 - 画像枚数
 - ファイルサイズ帯
+- `batch_id`
 - 主な計測値
 - 成功 / 劣化 / 失敗の判定
 - 発生した問題と再現手順
 - スクリーンショットまたは動画がある場合はその保存先
+
+記録テンプレート:
+
+| 項目 | 記録内容の例 |
+| --- | --- |
+| 実施日時 | 2026-04-22 14:30 JST |
+| シナリオ ID | S3 |
+| 実施環境 | macOS / Chrome 135 / local backend |
+| 回線条件 | Chrome throttling: Fast 4G |
+| 枚数 / 合計サイズ | 100枚 / 420MB |
+| `batch_id` | `upload-batch-...` |
+| 成功 / 失敗 / キャンセル / processing | 98 / 1 / 0 / 1 |
+| frontend p50 / p95 | item total duration の集計値 |
+| backend ボトルネック | `variants_generate_ms` が最大 |
+| CPU / memory | `ps` または `docker stats` の値 |
+| 問題点 | 例: 50枚超で preview 表示が遅延 |
+| 添付 | console 保存先 / backend log 保存先 / 動画リンク |
 
 ## 11. この計画で未解決の論点
 
@@ -216,8 +329,6 @@ Issue #48 配下の画像アップロード耐性検証に向けて、検証対�
 - 並列数を固定して検証するための手段を追加するか
 - 100件超アップロード時の一覧取得制約をどう扱うか
 - 300枚想定に対して UI / API / データ保持のどこまでを MVP で保証対象にするか
-- 計測値を console で取るか structured log にするか
-- frontend / backend ログの突合方法をどう揃えるか
 
 ## 12. #49 の完了条件
 
