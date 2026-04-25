@@ -54,6 +54,8 @@ DEFAULT_TENANT_ID = "00000000-0000-4000-8000-000000000001"
 @dataclass(frozen=True, slots=True)
 class Settings:
     api_prefix: str = "/api/v1"
+    database_url: str = ""
+    auth_cookie_secret: str = ""
     aws_region: str = "ap-northeast-1"
     s3_bucket: str = ""
     s3_endpoint_url: str | None = None
@@ -73,6 +75,8 @@ class Settings:
 def get_settings() -> Settings:
     return Settings(
         api_prefix=os.getenv("API_PREFIX", "/api/v1").rstrip("/") or "/api/v1",
+        database_url=os.getenv("DATABASE_URL", "").strip(),
+        auth_cookie_secret=os.getenv("AUTH_COOKIE_SECRET", "").strip(),
         aws_region=os.getenv("AWS_REGION", "ap-northeast-1"),
         s3_bucket=os.getenv("AWS_S3_BUCKET", "").strip(),
         s3_endpoint_url=os.getenv("AWS_S3_ENDPOINT_URL", "").strip() or None,
