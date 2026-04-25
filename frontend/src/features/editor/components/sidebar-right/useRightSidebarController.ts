@@ -20,6 +20,14 @@ import {
   isApiUploadEnabled,
   uploadPhotoFile,
 } from "../../utils/editorUpload";
+import {
+  createUploadBatchTelemetryContext,
+  createUploadItemTelemetryContext,
+  logUploadBatchCompleted,
+  logUploadBatchStarted,
+  markUploadPreviewAvailable,
+  markUploadPreviewRendered,
+} from "../../utils/uploadTelemetry";
 
 const ACCEPTED_EXTENSIONS = [".jpg", ".jpeg", ".png"];
 const ACCEPTED_MIME_TYPES = new Set(["image/jpeg", "image/png"]);
@@ -161,6 +169,19 @@ export function useRightSidebarController() {
 
   useEffect(() => {
     photos.forEach((photo) => {
+      if (
+        photo.source === "api" &&
+        (photo.previewUrl || photo.thumbnailUrl)
+      ) {
+        // store に描画可能な asset URL が入った時点を拾う。
+        // 実際の <img> onLoad より早い段階なので別指標として残す。
+        markUploadPreviewAvailable(photo.id, {
+          media_id: photo.mediaId,
+          photo_status: photo.status,
+          preview_source: photo.previewUrl ? "preview_url" : "thumbnail_url",
+        });
+      }
+
       if (photo.aspectRatioLabel || !photo.thumbnailUrl) {
         return;
       }
@@ -291,7 +312,7 @@ export function useRightSidebarController() {
     inputRef.current?.click();
   };
 
-  const markImageLoaded = (url: string) => {
+  const markImageLoaded = (photoId: string, url: string) => {
     setLoadedImageUrls((current) => {
       if (current[url]) {
         return current;
@@ -302,6 +323,8 @@ export function useRightSidebarController() {
         [url]: true,
       };
     });
+
+    markUploadPreviewRendered(photoId, url);
   };
 
   const toggleSection = (label: string) => {
@@ -363,6 +386,29 @@ export function useRightSidebarController() {
       return;
     }
 
+    // batch は 1 回の picker / drop 操作に対応させ、
+    // 後から件数・総バイト数と結果をまとめて照合できるようにする。
+    const batchTelemetry = createUploadBatchTelemetryContext(validFiles, albumId);
+    logUploadBatchStarted(batchTelemetry);
+    let remainingCount = validFiles.length;
+    const batchCounts = {
+      successCount: 0,
+      failureCount: 0,
+      cancelledCount: 0,
+      processingCount: 0,
+    };
+
+    const settleBatchTelemetry = (
+      outcome: keyof typeof batchCounts,
+    ) => {
+      batchCounts[outcome] += 1;
+      remainingCount -= 1;
+
+      if (remainingCount === 0) {
+        logUploadBatchCompleted(batchTelemetry, batchCounts);
+      }
+    };
+
     const drafts = validFiles.map((file) => ({
       file,
       draft: createPhotoDraft(file, apiUploadEnabled ? "api" : "demo"),
@@ -372,6 +418,13 @@ export function useRightSidebarController() {
     registerUploadBatch(drafts.map(({ draft }) => draft.id));
 
     drafts.forEach(({ file, draft }) => {
+      const telemetry = createUploadItemTelemetryContext({
+        batchId: batchTelemetry.batchId,
+        clientUploadId: draft.id,
+        albumId,
+        file,
+      });
+
       void extractImageMetadataFromFile(file)
         .then((metadata) => {
           patchPhoto(draft.id, metadata);
@@ -386,9 +439,12 @@ export function useRightSidebarController() {
 
       void (async () => {
         try {
+          // draft ID を安定した client-side key として使い、
+          // UI 状態・frontend telemetry・後続の media_id をつなぐ。
           const result = await uploadPhotoFile(file, {
             albumId,
             signal: abortController.signal,
+            telemetry,
             onProgress: (progress) => {
               patchPhoto(draft.id, {
                 progress,
@@ -407,9 +463,17 @@ export function useRightSidebarController() {
             source: result.source,
             error: undefined,
           });
+          settleBatchTelemetry(
+            result.status === "error"
+              ? "failureCount"
+              : result.status === "processing"
+                ? "processingCount"
+                : "successCount",
+          );
         } catch (error) {
           if (isAbortError(error)) {
             removePhoto(draft.id);
+            settleBatchTelemetry("cancelledCount");
             return;
           }
 
@@ -422,6 +486,7 @@ export function useRightSidebarController() {
             status: "error",
             error: message,
           });
+          settleBatchTelemetry("failureCount");
           window.alert(message);
         } finally {
           uploadControllersRef.current.delete(draft.id);

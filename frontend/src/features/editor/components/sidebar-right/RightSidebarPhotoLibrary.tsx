@@ -22,7 +22,7 @@ interface RightSidebarPhotoLibraryProps {
   onPhotoFilterChange: (filter: PhotoFilter) => void;
   onOpenFileDialog: () => void;
   onToggleSection: (label: string) => void;
-  onImageLoad: (url: string) => void;
+  onImageLoad: (photoId: string, url: string) => void;
   onDrop: DragEventHandler<HTMLElement>;
   onKeyDown: KeyboardEventHandler<HTMLElement>;
   onCancelUploads: () => void;

@@ -22,6 +22,14 @@ from app.features.uploads.service import (
     UploadObjectMissingError,
 )
 from app.features.uploads.storage import S3UploadStorage, StorageNotConfiguredError
+from app.features.uploads.telemetry import (
+    create_upload_log_context,
+    elapsed_ms,
+    error_fields,
+    log_upload_event,
+    start_timer,
+    update_upload_log_context,
+)
 
 router = APIRouter(prefix="/albums", tags=["media"])
 
@@ -111,10 +119,21 @@ def _translate_exception(exc: Exception) -> HTTPException:
 )
 async def initialize_media_upload(
     album_id: str,
+    request: Request,
     payload: UploadInitRequest,
     service: MediaService = Depends(get_media_service),
     settings: Settings = Depends(get_settings),
 ) -> UploadInitResponse:
+    started_at = start_timer()
+    # frontend が生成した相関キーを HTTP 境界で受け取り、
+    # backend の各ログ行を frontend console と突合できるようにする。
+    log_context = create_upload_log_context(
+        album_id=album_id,
+        tenant_id=settings.default_tenant_id,
+        batch_id=request.headers.get("x-upload-batch-id"),
+        client_upload_id=request.headers.get("x-upload-client-id"),
+    )
+
     try:
         data = service.initialize_upload(
             tenant_id=settings.default_tenant_id,
@@ -124,8 +143,26 @@ async def initialize_media_upload(
             byte_size=payload.byte_size,
         )
     except Exception as exc:  # pragma: no cover - translated and re-raised
+        log_upload_event(
+            "backend_upload_initialize_failed",
+            log_context,
+            api_duration_ms=elapsed_ms(started_at),
+            byte_size=payload.byte_size,
+            file_name=payload.file_name,
+            mime_type=payload.mime_type,
+            **error_fields(exc),
+        )
         raise _translate_exception(exc) from exc
 
+    log_upload_event(
+        "backend_upload_initialize_completed",
+        update_upload_log_context(log_context, media_id=data.id),
+        api_duration_ms=elapsed_ms(started_at),
+        byte_size=payload.byte_size,
+        file_name=payload.file_name,
+        mime_type=payload.mime_type,
+        response_status="created",
+    )
     return UploadInitResponse(data=data)
 
 
@@ -168,6 +205,16 @@ async def complete_media_upload(
     service: MediaService = Depends(get_media_service),
     settings: Settings = Depends(get_settings),
 ) -> MediaResponse:
+    started_at = start_timer()
+    # complete は upload lifecycle の中で最も重い backend 処理を含むため、
+    # initialize と同じ相関キーで継続して追えるようにする。
+    log_context = create_upload_log_context(
+        album_id=album_id,
+        media_id=media_id,
+        batch_id=request.headers.get("x-upload-batch-id"),
+        client_upload_id=request.headers.get("x-upload-client-id"),
+    )
+
     try:
         data = service.complete_upload(
             album_id=album_id,
@@ -184,10 +231,24 @@ async def complete_media_upload(
                 album_id=current_album_id,
                 media_id=current_media_id,
             ),
+            log_context=log_context,
         )
     except Exception as exc:  # pragma: no cover - translated and re-raised
+        log_upload_event(
+            "backend_upload_complete_failed",
+            log_context,
+            api_duration_ms=elapsed_ms(started_at),
+            **error_fields(exc),
+        )
         raise _translate_exception(exc) from exc
 
+    log_upload_event(
+        "backend_upload_complete_completed",
+        update_upload_log_context(log_context, media_id=data.id),
+        api_duration_ms=elapsed_ms(started_at),
+        media_status=data.status,
+        response_status="ok",
+    )
     return MediaResponse(data=data)
 
 
