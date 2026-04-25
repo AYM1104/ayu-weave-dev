@@ -4,6 +4,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import get_settings
+from app.features.auth.router import router as auth_router
 from app.features.uploads.router import router as uploads_router
 
 
@@ -23,6 +24,7 @@ def create_app() -> FastAPI:
     async def healthcheck() -> dict[str, str]:
         return {"status": "ok"}
 
+    app.include_router(auth_router, prefix=settings.api_prefix)
     app.include_router(uploads_router, prefix=settings.api_prefix)
     return app
 
